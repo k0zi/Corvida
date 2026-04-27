@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             xmlns:conv="using:Corvida.Converters"
+             xmlns:controls="using:Corvida.Controls"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.TaskEditorView"
+             x:DataType="vm:TaskEditorViewModel">
+
+    <DockPanel Margin="16">
+        <!-- Header -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0 0 0 20">
+            <Button Grid.Column="0" Command="{Binding GoBackCommand}" Classes="Basic" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="ArrowLeft" Width="16" Height="16"/>
+                    <TextBlock Text="Back"/>
+                </StackPanel>
+            </Button>
+            <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Edit Task" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="{Binding BoardName}" FontSize="13" Opacity="0.6" HorizontalAlignment="Center"/>
+            </StackPanel>
+            <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="Flat" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16"/>
+                    <TextBlock Text="Save"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Form -->
+        <ScrollViewer>
+            <sukiUi:GlassCard Margin="0" Padding="20" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="16">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Title" FontWeight="Medium"/>
+                        <TextBox Text="{Binding Title}" Watermark="Task title"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Priority" FontWeight="Medium"/>
+                        <ComboBox ItemsSource="{Binding Priorities}"
+                                  SelectedItem="{Binding SelectedPriority}"
+                                  MinWidth="160">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{Binding Converter={x:Static conv:PriorityToEmojiConverter.Instance}}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Description" FontWeight="Medium"/>
+                        <controls:MarkdownEditor Text="{Binding Description}" MinHeight="250"/>
+                    </StackPanel>
+                </StackPanel>
+            </sukiUi:GlassCard>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

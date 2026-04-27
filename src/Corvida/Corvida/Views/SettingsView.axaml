@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <StackPanel Margin="16" Spacing="16">
+        <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold"/>
+
+        <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Data Path" FontWeight="Medium"/>
+                    <TextBlock Text="The folder where boards and tasks are stored."
+                               FontSize="12" Opacity="0.6"/>
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <TextBox Grid.Column="0" Text="{Binding DataPath}" Watermark="~/CorvidaData"/>
+                        <Button Grid.Column="1" Click="BrowseFolder_Click" Classes="Basic">
+                            <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18"/>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <Button Command="{Binding SaveCommand}" Classes="Flat" HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16"/>
+                        <TextBlock Text="Save Settings"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </sukiUi:GlassCard>
+    </StackPanel>
+</UserControl>

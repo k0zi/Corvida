@@ -1,0 +1,43 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+                   xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+                   xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:vm="using:Corvida.ViewModels"
+                   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                   mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                   x:Class="Corvida.Views.MainWindow"
+                   x:DataType="vm:MainWindowViewModel"
+                   Icon="/Assets/corvida.png"
+                   Title="Corvida">
+
+    <sukiUi:SukiWindow.LogoContent>
+        <Image Width="28" Height="28" Margin="4 0" Source="avares://Corvida/Assets/corvida.png"/>
+    </sukiUi:SukiWindow.LogoContent>
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+    <sukiUi:SukiWindow.RightWindowTitleBarControls>
+        <Button Command="{Binding ToggleThemeCommand}" Classes="Basic">
+            <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
+        </Button>
+    </sukiUi:SukiWindow.RightWindowTitleBarControls>
+    <sukiUi:SukiSideMenu IsSearchEnabled="True"
+                         ItemsSource="{Binding Pages}">
+        <sukiUi:SukiSideMenu.ItemTemplate>
+            <DataTemplate x:DataType="vm:PageBase">
+                <sukiUi:SukiSideMenuItem Header="{Binding MenuTitle}">
+                    <sukiUi:SukiSideMenuItem.Icon>
+                        <materialIcons:MaterialIcon Kind="{Binding Icon}" />
+                    </sukiUi:SukiSideMenuItem.Icon>
+                    <sukiUi:SukiSideMenuItem.PageContent>
+                        <ContentControl Content="{Binding}" />
+                    </sukiUi:SukiSideMenuItem.PageContent>
+                </sukiUi:SukiSideMenuItem>
+            </DataTemplate>
+        </sukiUi:SukiSideMenu.ItemTemplate>
+    </sukiUi:SukiSideMenu>
+</sukiUi:SukiWindow>

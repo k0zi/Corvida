@@ -1,0 +1,36 @@
+<UserControl x:Name="Root" x:CompileBindings="False"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="clr-namespace:Markdown.Avalonia;assembly=Markdown.Avalonia"
+             x:Class="Corvida.Controls.MarkdownEditor">
+  <DockPanel>
+
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal"
+                HorizontalAlignment="Right" Spacing="4" Margin="0 0 0 6">
+      <Button x:Name="EditModeBtn"  Content="Edit"         Click="OnEditClick"  Classes="Flat"/>
+      <Button x:Name="SplitModeBtn" Content="Edit &amp; View" Click="OnSplitClick" Classes="Basic"/>
+      <Button x:Name="ViewModeBtn"  Content="View"         Click="OnViewClick"  Classes="Basic"/>
+    </StackPanel>
+
+    <Grid x:Name="ContentGrid">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="0"/>
+        <ColumnDefinition Width="0"/>
+      </Grid.ColumnDefinitions>
+
+      <TextBox Grid.Column="0" x:Name="EditorBox"
+               Text="{Binding Text, ElementName=Root, Mode=TwoWay}"
+               AcceptsReturn="True" TextWrapping="Wrap"
+               VerticalContentAlignment="Top"
+               Watermark="Add notes, steps, or details..."/>
+
+      <GridSplitter Grid.Column="1" x:Name="Splitter"
+                    ResizeDirection="Columns" Width="4" IsVisible="False"/>
+
+      <md:MarkdownScrollViewer Grid.Column="2" x:Name="PreviewBox"
+                               Markdown="{Binding Text, ElementName=Root}"
+                               IsVisible="False"/>
+    </Grid>
+  </DockPanel>
+</UserControl>

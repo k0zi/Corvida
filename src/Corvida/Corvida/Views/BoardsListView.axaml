@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             xmlns:models="using:Corvida.Models"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.BoardsListView"
+             x:DataType="vm:BoardsListViewModel">
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0 0 0 16">
+            <TextBlock Text="Boards" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Button Command="{Binding CreateBoardCommand}" Classes="Flat" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="Plus" Width="16" Height="16"/>
+                    <TextBlock Text="New Board"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Boards}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:Board">
+                        <sukiUi:GlassCard Margin="0 0 0 10" Padding="16" DoubleTapped="BoardCard_DoubleTapped">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Grid.Column="0" Spacing="4" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Medium"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{Binding Groups.Count}" FontSize="12" Opacity="0.6"/>
+                                        <TextBlock Text="group(s)" FontSize="12" Opacity="0.6"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:BoardsListViewModel)DataContext).EditBoardCommand}"
+                                            CommandParameter="{Binding}"
+                                            Classes="Basic">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <materialIcons:MaterialIcon Kind="Pencil" Width="16" Height="16"/>
+                                            <TextBlock Text="Edit"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:BoardsListViewModel)DataContext).DeleteBoardCommand}"
+                                            CommandParameter="{Binding}"
+                                            Classes="Basic Danger">
+                                        <materialIcons:MaterialIcon Kind="Delete" Width="16" Height="16"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </sukiUi:GlassCard>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             xmlns:models="using:Corvida.Models"
+             xmlns:conv="using:Corvida.Converters"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.BoardEditorView"
+             x:DataType="vm:BoardEditorViewModel">
+
+    <DockPanel Margin="16">
+        <!-- Header -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0 0 0 16">
+            <Button Grid.Column="0" Command="{Binding GoBackCommand}" Classes="Basic" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="ArrowLeft" Width="16" Height="16"/>
+                    <TextBlock Text="Back"/>
+                </StackPanel>
+            </Button>
+            <TextBlock Grid.Column="1" Text="{Binding Board.Name}" FontSize="22" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Button Grid.Column="2" Command="{Binding AddGroupCommand}" Classes="Flat" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="Plus" Width="16" Height="16"/>
+                    <TextBlock Text="Add Group"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Group cards in a horizontal scroll -->
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding GroupCards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="12"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:GroupCardViewModel">
+                        <sukiUi:GlassCard Width="280" Padding="12" VerticalAlignment="Top">
+                            <DockPanel>
+                                <!-- Group header -->
+                                <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0 0 0 10">
+                                    <TextBlock Grid.Column="0" Text="{Binding GroupName}"
+                                               FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Command="{Binding DeleteGroupCommand}"
+                                            Classes="Basic" Width="28" Height="28" Padding="4">
+                                        <materialIcons:MaterialIcon Kind="Delete" Width="14" Height="14"/>
+                                    </Button>
+                                </Grid>
+
+                                <!-- Task list -->
+                                <Button DockPanel.Dock="Bottom" Command="{Binding AddTaskCommand}"
+                                        HorizontalAlignment="Stretch" Margin="0 8 0 0" Classes="Basic">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                        <materialIcons:MaterialIcon Kind="Plus" Width="14" Height="14"/>
+                                        <TextBlock Text="Add Task" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding Tasks}" Margin="0 0 0 4">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="models:KanbanTask">
+                                                <Border Background="#20808080" CornerRadius="6" Margin="0 0 0 6" Padding="10 8" DoubleTapped="TaskCard_DoubleTapped">
+                                                    <DockPanel>
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+                                                            <Button Command="{Binding $parent[ItemsControl].((vm:GroupCardViewModel)DataContext).EditTaskCommand}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Classes="Basic" Width="26" Height="26" Padding="4"
+                                                                    ToolTip.Tip="Edit task">
+                                                                <materialIcons:MaterialIcon Kind="Pencil" Width="12" Height="12"/>
+                                                            </Button>
+                                                            <Button Command="{Binding $parent[ItemsControl].((vm:GroupCardViewModel)DataContext).TransferTaskCommand}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Classes="Basic" Width="26" Height="26" Padding="4"
+                                                                    ToolTip.Tip="Move to group">
+                                                                <materialIcons:MaterialIcon Kind="SwapHorizontal" Width="12" Height="12"/>
+                                                            </Button>
+                                                            <Button Command="{Binding $parent[ItemsControl].((vm:GroupCardViewModel)DataContext).DeleteTaskCommand}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Classes="Basic" Width="26" Height="26" Padding="4"
+                                                                    ToolTip.Tip="Delete task">
+                                                                <materialIcons:MaterialIcon Kind="Delete" Width="12" Height="12"/>
+                                                            </Button>
+                                                        </StackPanel>
+                                                        <StackPanel VerticalAlignment="Center" Margin="0 0 4 0">
+                                                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="Medium" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="{Binding Priority, Converter={x:Static conv:PriorityToEmojiConverter.Instance}}" FontSize="11" Opacity="0.7" Margin="0 2 0 0"/>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </sukiUi:GlassCard>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
