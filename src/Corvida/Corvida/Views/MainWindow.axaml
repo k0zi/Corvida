@@ -12,7 +12,7 @@
                    Title="Corvida">
 
     <sukiUi:SukiWindow.LogoContent>
-        <Image Width="28" Height="28" Margin="4 0" Source="avares://Corvida/Assets/corvida.png"/>
+        <Image Width="24" Height="24" Source="/Assets/corvida.png"/>
     </sukiUi:SukiWindow.LogoContent>
 
     <Design.DataContext>
@@ -27,6 +27,9 @@
     </sukiUi:SukiWindow.RightWindowTitleBarControls>
     <sukiUi:SukiSideMenu IsSearchEnabled="True"
                          ItemsSource="{Binding Pages}">
+        <sukiUi:SukiSideMenu.HeaderContent>
+            <Image Width="128" Height="128" Source="/Assets/corvida.png"/>
+        </sukiUi:SukiSideMenu.HeaderContent>
         <sukiUi:SukiSideMenu.ItemTemplate>
             <DataTemplate x:DataType="vm:PageBase">
                 <sukiUi:SukiSideMenuItem Header="{Binding MenuTitle}">
