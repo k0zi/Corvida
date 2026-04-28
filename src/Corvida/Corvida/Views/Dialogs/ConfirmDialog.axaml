@@ -12,7 +12,7 @@
         <TextBlock x:Name="MessageText" FontSize="14" TextWrapping="Wrap"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="No" Click="No_Click" Classes="Basic"/>
-            <Button Content="Yes" Click="Yes_Click" Classes="Flat"/>
+            <Button Content="Yes" Click="Yes_Click" Classes="Basic Danger"/>
         </StackPanel>
     </StackPanel>
 </sukiUi:SukiWindow>

@@ -60,6 +60,40 @@ public partial class BoardEditorViewModel : ViewModelBase
             card.RefreshTask(updated);
     }
 
+    public async Task MoveTaskAsync(KanbanTask task, GroupCardViewModel source, GroupCardViewModel target, int insertIndex)
+    {
+        if (source == target)
+        {
+            var currentIndex = source.Tasks.IndexOf(task);
+            if (currentIndex < 0) return;
+
+            var effectiveIndex = Math.Clamp(
+                insertIndex > currentIndex ? insertIndex - 1 : insertIndex,
+                0, source.Tasks.Count - 1);
+            if (effectiveIndex == currentIndex) return;
+
+            source.Tasks.Move(currentIndex, effectiveIndex);
+
+            source.Group.TaskIds.Clear();
+            foreach (var t in source.Tasks)
+                source.Group.TaskIds.Add(t.Id);
+        }
+        else
+        {
+            source.Group.TaskIds.Remove(task.Id);
+            task.GroupId = target.Group.Id;
+
+            var clampedIndex = Math.Clamp(insertIndex, 0, target.Group.TaskIds.Count);
+            target.Group.TaskIds.Insert(clampedIndex, task.Id);
+
+            await _taskService.SaveTaskAsync(task);
+            source.RemoveTask(task);
+            target.InsertTask(task, clampedIndex);
+        }
+
+        await _boardService.SaveBoardAsync(Board);
+    }
+
     private async Task TransferTaskAsync(KanbanTask task, GroupCardViewModel source)
     {
         var others = GroupCards.Where(c => c != source).ToList();

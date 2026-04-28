@@ -54,6 +54,17 @@
                         </ComboBox>
                     </StackPanel>
 
+                    <Grid ColumnDefinitions="*,16,*">
+                        <StackPanel Grid.Column="0" Spacing="6">
+                            <TextBlock Text="Planned Start" FontWeight="Medium"/>
+                            <DatePicker SelectedDate="{Binding PlannedStart}" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="6">
+                            <TextBlock Text="Planned End" FontWeight="Medium"/>
+                            <DatePicker SelectedDate="{Binding PlannedEnd}" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Grid>
+
                     <StackPanel Spacing="6">
                         <TextBlock Text="Description" FontWeight="Medium"/>
                         <controls:MarkdownEditor Text="{Binding Description}" MinHeight="250"/>

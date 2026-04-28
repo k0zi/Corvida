@@ -68,6 +68,8 @@ public partial class GroupCardViewModel : ViewModelBase
 
     public void AddTask(KanbanTask task) => Tasks.Add(task);
 
+    public void InsertTask(KanbanTask task, int index) => Tasks.Insert(Math.Clamp(index, 0, Tasks.Count), task);
+
     public void RemoveTask(KanbanTask task) => Tasks.Remove(task);
 
     [RelayCommand]

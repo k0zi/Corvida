@@ -80,6 +80,16 @@ public class TaskService : ITaskService
                                     DateTimeStyles.RoundtripKind, out var dt))
                                 task.Created = dt;
                             break;
+                        case "plannedStart":
+                            if (DateTime.TryParse(value, CultureInfo.InvariantCulture,
+                                    DateTimeStyles.RoundtripKind, out var ps))
+                                task.PlannedStart = ps;
+                            break;
+                        case "plannedEnd":
+                            if (DateTime.TryParse(value, CultureInfo.InvariantCulture,
+                                    DateTimeStyles.RoundtripKind, out var pe))
+                                task.PlannedEnd = pe;
+                            break;
                     }
                 }
             }
@@ -103,6 +113,10 @@ public class TaskService : ITaskService
         sb.AppendLine($"boardId: {task.BoardId}");
         sb.AppendLine($"created: {task.Created:O}");
         sb.AppendLine($"priority: {task.Priority}");
+        if (task.PlannedStart.HasValue)
+            sb.AppendLine($"plannedStart: {task.PlannedStart.Value:O}");
+        if (task.PlannedEnd.HasValue)
+            sb.AppendLine($"plannedEnd: {task.PlannedEnd.Value:O}");
         sb.AppendLine("---");
         sb.AppendLine();
         sb.Append(task.Description);

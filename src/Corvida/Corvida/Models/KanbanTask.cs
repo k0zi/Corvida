@@ -11,4 +11,6 @@ public class KanbanTask
     public string BoardId { get; set; } = string.Empty;
     public DateTime Created { get; set; } = DateTime.UtcNow;
     public string Priority { get; set; } = "Medium";
+    public DateTime? PlannedStart { get; set; }
+    public DateTime? PlannedEnd { get; set; }
 }

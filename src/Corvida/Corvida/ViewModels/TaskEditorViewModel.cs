@@ -19,6 +19,8 @@ public partial class TaskEditorViewModel : ViewModelBase
     [ObservableProperty] private string _title = string.Empty;
     [ObservableProperty] private string _description = string.Empty;
     [ObservableProperty] private string _selectedPriority = "Medium";
+    [ObservableProperty] private DateTimeOffset? _plannedStart;
+    [ObservableProperty] private DateTimeOffset? _plannedEnd;
 
     public IReadOnlyList<string> Priorities { get; } = new[] { "Low", "Medium", "High" };
 
@@ -36,6 +38,8 @@ public partial class TaskEditorViewModel : ViewModelBase
         Title = task.Title;
         Description = task.Description;
         SelectedPriority = task.Priority;
+        PlannedStart = task.PlannedStart.HasValue ? new DateTimeOffset(task.PlannedStart.Value) : null;
+        PlannedEnd = task.PlannedEnd.HasValue ? new DateTimeOffset(task.PlannedEnd.Value) : null;
     }
 
     [RelayCommand]
@@ -44,6 +48,8 @@ public partial class TaskEditorViewModel : ViewModelBase
         _task.Title = Title.Trim();
         _task.Description = Description;
         _task.Priority = SelectedPriority;
+        _task.PlannedStart = PlannedStart?.DateTime;
+        _task.PlannedEnd = PlannedEnd?.DateTime;
         await _taskService.SaveTaskAsync(_task);
         _onSaved(_task);
     }
