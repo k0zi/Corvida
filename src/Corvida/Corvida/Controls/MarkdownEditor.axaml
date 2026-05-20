@@ -23,7 +23,7 @@
                Text="{Binding Text, ElementName=Root, Mode=TwoWay}"
                AcceptsReturn="True" TextWrapping="Wrap"
                VerticalContentAlignment="Top"
-               Watermark="Add notes, steps, or details..."/>
+               PlaceholderText="Add notes, steps, or details..."/>
 
       <GridSplitter Grid.Column="1" x:Name="Splitter"
                     ResizeDirection="Columns" Width="4" IsVisible="False"/>

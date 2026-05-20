@@ -15,7 +15,7 @@ public partial class InputDialog : SukiWindow
         Title = title;
         this.FindControl<TextBlock>("PromptText")!.Text = prompt;
         var inputBox = this.FindControl<TextBox>("InputBox")!;
-        inputBox.Watermark = placeholder;
+        inputBox.PlaceholderText = placeholder;
         inputBox.Focus();
     }
 

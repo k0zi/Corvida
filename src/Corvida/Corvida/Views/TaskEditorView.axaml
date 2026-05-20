@@ -38,7 +38,8 @@
                 <StackPanel Spacing="16">
                     <StackPanel Spacing="6">
                         <TextBlock Text="Title" FontWeight="Medium"/>
-                        <TextBox Text="{Binding Title}" Watermark="Task title"/>
+                        <TextBox Text="{Binding Title}" 
+                                 PlaceholderText="Task title"/>
                     </StackPanel>
 
                     <StackPanel Spacing="6">

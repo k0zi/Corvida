@@ -14,7 +14,8 @@ namespace Corvida.Views;
 
 public partial class BoardEditorView : UserControl
 {
-    private const string DragTaskFormat = "corvida/task";
+    private static readonly DataFormat<KanbanTask> DragTaskFormat =
+        DataFormat.CreateInProcessFormat<KanbanTask>("corvida-task");
     private KanbanTask? _draggedTask;
     private GroupCardViewModel? _dragSourceGroup;
 
@@ -29,19 +30,15 @@ public partial class BoardEditorView : UserControl
 
     private void GroupCard_DragOver(object? sender, DragEventArgs e)
     {
-#pragma warning disable CS0618
-        e.DragEffects = e.Data.Contains(DragTaskFormat)
+        e.DragEffects = e.DataTransfer.Contains(DragTaskFormat)
             ? DragDropEffects.Move
             : DragDropEffects.None;
-#pragma warning restore CS0618
         e.Handled = true;
     }
 
     private async void GroupCard_Drop(object? sender, DragEventArgs e)
     {
-#pragma warning disable CS0618
-        if (!e.Data.Contains(DragTaskFormat) || _draggedTask is null || _dragSourceGroup is null) return;
-#pragma warning restore CS0618
+        if (!e.DataTransfer.Contains(DragTaskFormat) || _draggedTask is null || _dragSourceGroup is null) return;
         if (sender is not Control ctrl || ctrl.DataContext is not GroupCardViewModel targetGroup) return;
         if (DataContext is not BoardEditorViewModel vm) return;
 
@@ -62,11 +59,10 @@ public partial class BoardEditorView : UserControl
         _draggedTask = task;
         _dragSourceGroup = sourceGroup;
 
-#pragma warning disable CS0618
-        var data = new DataObject();
-        data.Set(DragTaskFormat, task);
-        await DragDrop.DoDragDrop(e, data, DragDropEffects.Move);
-#pragma warning restore CS0618
+        var item = DataTransferItem.Create(DragTaskFormat, task);
+        var data = new DataTransfer();
+        data.Add(item);
+        await DragDrop.DoDragDropAsync(e, data, DragDropEffects.Move);
 
         _draggedTask = null;
         _dragSourceGroup = null;

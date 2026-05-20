@@ -45,13 +45,13 @@ public class BoardService : IBoardService
     {
         var board = new Board
         {
-            Id = "brd-" + Guid.NewGuid().ToString("N")[..8],
+            Id = name + "-brd-" + Guid.NewGuid().ToString("N")[..8],
             Name = name,
             Groups = new List<KanbanGroup>
             {
-                new() { Id = "grp-" + Guid.NewGuid().ToString("N")[..8], Name = "To-Do" },
-                new() { Id = "grp-" + Guid.NewGuid().ToString("N")[..8], Name = "In-Progress" },
-                new() { Id = "grp-" + Guid.NewGuid().ToString("N")[..8], Name = "Done" }
+                new() { Id = "To-Do" + "-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "To-Do" },
+                new() { Id = "In-Progress"+"-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "In-Progress" },
+                new() { Id = "Done"+"-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "Done" }
             }
         };
 

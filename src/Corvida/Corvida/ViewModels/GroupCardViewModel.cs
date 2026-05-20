@@ -80,7 +80,7 @@ public partial class GroupCardViewModel : ViewModelBase
 
         var task = new KanbanTask
         {
-            Id = "task-" + Guid.NewGuid().ToString("N")[..8],
+            Id = title + "-task-" + Guid.NewGuid().ToString("N")[..8],
             Title = title,
             GroupId = _group.Id,
             BoardId = _board.Id,

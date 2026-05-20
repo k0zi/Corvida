@@ -1,9 +1,8 @@
+using System;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
-using System;
-using System.Linq;
 using Avalonia.Markup.Xaml;
 using Corvida.Services;
 using Corvida.ViewModels;
@@ -58,16 +57,18 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private void DisableAvaloniaDataAnnotationValidation()
+    private static void DisableAvaloniaDataAnnotationValidation()
     {
-        // Get an array of plugins to remove
-        var dataValidationPluginsToRemove =
-            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
-
-        // remove each entry found
-        foreach (var plugin in dataValidationPluginsToRemove)
-        {
-            BindingPlugins.DataValidators.Remove(plugin);
-        }
+        // BindingPlugins is internal in Avalonia 12, access via reflection
+        var bindingPluginsType = typeof(DataAnnotationsValidationPlugin).Assembly
+            
+            .GetType("Avalonia.Data.Core.Plugins.BindingPlugins");
+        var dataValidators = bindingPluginsType?
+            .GetProperty("DataValidators", BindingFlags.Public | BindingFlags.Static)
+            ?.GetValue(null) as System.Collections.IList;
+        if (dataValidators == null) return;
+        for (var i = dataValidators.Count - 1; i >= 0; i--)
+            if (dataValidators[i] is DataAnnotationsValidationPlugin)
+                dataValidators.RemoveAt(i);
     }
 }
