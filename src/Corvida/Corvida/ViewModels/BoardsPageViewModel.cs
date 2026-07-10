@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Corvida.Models;
 using Corvida.Services;
@@ -13,6 +14,7 @@ public partial class BoardsPageViewModel : PageBase
     private readonly IDialogService _dialogService;
 
     private readonly Stack<ViewModelBase> _navStack = new();
+    private readonly BoardsListViewModel _listVm;
 
     [ObservableProperty]
     private ViewModelBase _currentViewModel = null!;
@@ -27,11 +29,18 @@ public partial class BoardsPageViewModel : PageBase
         _taskService = taskService;
         _dialogService = dialogService;
 
-        var listVm = new BoardsListViewModel(boardService, dialogService, NavigateToBoardEditor);
-        _navStack.Push(listVm);
-        CurrentViewModel = listVm;
+        _listVm = new BoardsListViewModel(boardService, dialogService, NavigateToBoardEditor);
+        _navStack.Push(_listVm);
+        CurrentViewModel = _listVm;
 
-        _ = listVm.LoadAsync();
+        _ = _listVm.LoadAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        while (_navStack.Count > 1) _navStack.Pop();
+        CurrentViewModel = _listVm;
+        await _listVm.LoadAsync();
     }
 
     private void NavigateTo(ViewModelBase vm)

@@ -28,14 +28,10 @@ public class BoardService : IBoardService
         {
             var file = Path.Combine(dir, "board.json");
             if (!File.Exists(file)) continue;
-
-            try
-            {
-                var json = await File.ReadAllTextAsync(file);
-                var board = JsonSerializer.Deserialize<Board>(json);
-                if (board is not null) result.Add(board);
-            }
-            catch { }
+            var json = await File.ReadAllTextAsync(file);
+            var board = JsonSerializer.Deserialize<Board>(json);
+            if (board is not null) 
+                result.Add(board);
         }
 
         return result;
@@ -50,8 +46,8 @@ public class BoardService : IBoardService
             Groups = new List<KanbanGroup>
             {
                 new() { Id = "To-Do" + "-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "To-Do" },
-                new() { Id = "In-Progress"+"-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "In-Progress" },
-                new() { Id = "Done"+"-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "Done" }
+                new() { Id = "In-Progress" + "-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "In-Progress" },
+                new() { Id = "Done" + "-grp-" + Guid.NewGuid().ToString("N")[..8], Name = "Done" }
             }
         };
 

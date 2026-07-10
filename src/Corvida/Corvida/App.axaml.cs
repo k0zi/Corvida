@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -32,9 +33,19 @@ public partial class App : Application
 
             // Services
             services.AddSingleton<ISettingsService, SettingsService>();
-            services.AddSingleton<IBoardService, BoardService>();
-            services.AddSingleton<ITaskService, TaskService>();
             services.AddSingleton<IDialogService, DialogService>();
+
+            // Storage: concrete implementations + strategy adapters
+            services.AddSingleton<BoardService>();
+            services.AddSingleton<HttpBoardService>();
+            services.AddSingleton<IBoardService, StorageAwareBoardService>();
+
+            services.AddSingleton<TaskService>();
+            services.AddSingleton<HttpTaskService>();
+            services.AddSingleton<ITaskService, StorageAwareTaskService>();
+
+            services.AddSingleton<IExportService, ExportService>();
+            services.AddHttpClient("CorvidaApi");
 
             // Pages
             services.AddTransient<PageBase, BoardsPageViewModel>();
@@ -48,9 +59,18 @@ public partial class App : Application
             // Load settings before showing window
             Services.GetRequiredService<ISettingsService>().LoadAsync().GetAwaiter().GetResult();
 
+            var mainVm = Services.GetRequiredService<MainWindowViewModel>();
+            var boardsPage = mainVm.Pages.OfType<BoardsPageViewModel>().First();
+            var settingsPage = mainVm.Pages.OfType<SettingsViewModel>().First();
+            settingsPage.SetOnSaved(async () =>
+            {
+                mainVm.ActivePage = boardsPage;
+                await boardsPage.RefreshAsync();
+            });
+
             desktop.MainWindow = new MainWindow
             {
-                DataContext = Services.GetRequiredService<MainWindowViewModel>(),
+                DataContext = mainVm,
             };
         }
 

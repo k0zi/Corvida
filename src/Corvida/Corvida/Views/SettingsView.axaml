@@ -14,7 +14,18 @@
 
         <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
             <StackPanel Spacing="16">
+
+                <!-- Storage Mode -->
                 <StackPanel Spacing="6">
+                    <TextBlock Text="Storage Mode" FontWeight="Medium"/>
+                    <TextBlock Text="Where boards and tasks are stored."
+                               FontSize="12" Opacity="0.6"/>
+                    <RadioButton Content="Local Folder" IsChecked="{Binding IsLocalFolder}"/>
+                    <RadioButton Content="Server Hosted" IsChecked="{Binding IsServerHosted}"/>
+                </StackPanel>
+
+                <!-- Data Path — LocalFolder mode only -->
+                <StackPanel Spacing="6" IsVisible="{Binding IsLocalFolder}">
                     <TextBlock Text="Data Path" FontWeight="Medium"/>
                     <TextBlock Text="The folder where boards and tasks are stored."
                                FontSize="12" Opacity="0.6"/>
@@ -26,12 +37,31 @@
                     </Grid>
                 </StackPanel>
 
+                <!-- Server URL — ServerHosted mode only -->
+                <StackPanel Spacing="6" IsVisible="{Binding IsServerHosted}">
+                    <TextBlock Text="Server URL" FontWeight="Medium"/>
+                    <TextBlock Text="Base URL of the Corvida API server (e.g. http://localhost:5000)."
+                               FontSize="12" Opacity="0.6"/>
+                    <TextBox Text="{Binding ServerUrl}" PlaceholderText="http://localhost:5000"/>
+                </StackPanel>
+
+                <!-- Export — ServerHosted mode only -->
+                <Button IsVisible="{Binding IsServerHosted}"
+                        Click="ExportToFolder_Click"
+                        Classes="Basic" HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <materialIcons:MaterialIcon Kind="Export" Width="16" Height="16"/>
+                        <TextBlock Text="Export to Local Folder..."/>
+                    </StackPanel>
+                </Button>
+
                 <Button Command="{Binding SaveCommand}" Classes="Flat" HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16"/>
                         <TextBlock Text="Save Settings"/>
                     </StackPanel>
                 </Button>
+
             </StackPanel>
         </sukiUi:GlassCard>
     </StackPanel>

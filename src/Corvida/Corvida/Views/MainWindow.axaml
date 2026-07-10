@@ -26,7 +26,8 @@
         </Button>
     </sukiUi:SukiWindow.RightWindowTitleBarControls>
     <sukiUi:SukiSideMenu IsSearchEnabled="True"
-                         ItemsSource="{Binding Pages}">
+                         ItemsSource="{Binding Pages}"
+                         SelectedItem="{Binding ActivePage, Mode=TwoWay}">
         <sukiUi:SukiSideMenu.HeaderContent>
             <Image Width="128" Height="128" Source="/Assets/corvida.png"/>
         </sukiUi:SukiSideMenu.HeaderContent>

@@ -14,6 +14,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<PageBase> Pages { get; }
 
     [ObservableProperty] private MaterialIconKind _themeIcon = MaterialIconKind.WeatherSunny;
+    [ObservableProperty] private PageBase? _activePage;
 
     public MainWindowViewModel(IEnumerable<PageBase> pages)
     {

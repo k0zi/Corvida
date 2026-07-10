@@ -7,4 +7,8 @@ public class AppSettings
 {
     public string DataPath { get; set; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "CorvidaData");
+
+    public StorageMode StorageMode { get; set; } = StorageMode.LocalFolder;
+
+    public string? ServerUrl { get; set; }
 }

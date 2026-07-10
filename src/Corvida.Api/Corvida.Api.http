@@ -1,0 +1,89 @@
+@host = http://localhost:5000
+@boardId = My-Board-brd-00000001
+@taskId = task-tsk-00000001
+
+### List all boards
+# @name list_boards
+GET {{host}}/api/boards
+Accept: application/json
+
+###
+
+### Create a board
+# @name create_board
+POST {{host}}/api/boards
+Content-Type: application/json
+
+{
+  "name": "My Board"
+}
+
+###
+
+### Get a board
+GET {{host}}/api/boards/{{boardId}}
+Accept: application/json
+
+###
+
+### Update a board (full replace)
+PUT {{host}}/api/boards/{{boardId}}
+Content-Type: application/json
+
+{
+  "id": "{{boardId}}",
+  "name": "My Board (renamed)",
+  "groups": [
+    {
+      "id": "To-Do-grp-00000001",
+      "name": "To-Do",
+      "taskIds": []
+    },
+    {
+      "id": "In-Progress-grp-00000002",
+      "name": "In-Progress",
+      "taskIds": []
+    },
+    {
+      "id": "Done-grp-00000003",
+      "name": "Done",
+      "taskIds": []
+    }
+  ]
+}
+
+###
+
+### Delete a board
+DELETE {{host}}/api/boards/{{boardId}}
+
+###
+
+### Get a task
+GET {{host}}/api/boards/{{boardId}}/tasks/{{taskId}}
+Accept: application/json
+
+###
+
+### Upsert a task (create or update)
+PUT {{host}}/api/boards/{{boardId}}/tasks/{{taskId}}
+Content-Type: application/json
+
+{
+  "id": "{{taskId}}",
+  "boardId": "{{boardId}}",
+  "groupId": "To-Do-grp-00000001",
+  "title": "My first task",
+  "description": "Task description in **markdown**.",
+  "priority": "Medium",
+  "created": "2026-06-02T00:00:00Z",
+  "plannedStart": null,
+  "plannedEnd": null
+}
+
+###
+
+### Delete a task
+DELETE {{host}}/api/boards/{{boardId}}/tasks/{{taskId}}
+
+###

@@ -23,7 +23,7 @@ public class SettingsService : ISettingsService
 
         try
         {
-            var json = await File.ReadAllTextAsync(ConfigPath);
+            var json = await File.ReadAllTextAsync(ConfigPath).ConfigureAwait(false);
             Settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
         }
         catch
@@ -36,6 +36,6 @@ public class SettingsService : ISettingsService
     {
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
         var json = JsonSerializer.Serialize(Settings, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(ConfigPath, json);
+        await File.WriteAllTextAsync(ConfigPath, json).ConfigureAwait(false);
     }
 }
