@@ -125,6 +125,17 @@ claude mcp add -s user corvida -- dotnet run -c Release --project /path/to/src/C
 }
 ```
 
+**Hermes agent** ([hermes-agent.nousresearch.com](https://hermes-agent.nousresearch.com/)) — add it to `~/.hermes/config.yaml` under `mcp_servers`:
+
+```yaml
+mcp_servers:
+  corvida:
+    command: "dotnet"
+    args: ["run", "--project", "/path/to/src/Corvida.Mcp/Corvida.Mcp.csproj"]
+```
+
+Then run `hermes chat` to discover and register the tools, or `/reload-mcp` if Hermes is already running.
+
 ## Configuration
 
 App settings live at `{AppData}/Corvida/settings.json`, shared by the desktop app and MCP server:
