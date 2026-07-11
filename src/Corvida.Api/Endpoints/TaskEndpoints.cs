@@ -1,5 +1,7 @@
 using Corvida.Api.Data;
+using Corvida.Api.Hubs;
 using Corvida.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Corvida.Api.Endpoints;
@@ -22,7 +24,7 @@ public static class TaskEndpoints
         return entity is null ? Results.NotFound() : Results.Ok(ToModel(entity));
     }
 
-    static async Task<IResult> UpsertTask(string boardId, string taskId, KanbanTask task, AppDbContext db)
+    static async Task<IResult> UpsertTask(string boardId, string taskId, KanbanTask task, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
         var entity = await db.Tasks.FirstOrDefaultAsync(t => t.BoardId == boardId && t.Id == taskId);
 
@@ -41,16 +43,21 @@ public static class TaskEndpoints
         entity.PlannedEnd = task.PlannedEnd;
 
         await db.SaveChangesAsync();
-        return Results.Ok(ToModel(entity));
+
+        var model = ToModel(entity);
+        await hub.Clients.All.TaskChanged(boardId, model);
+        return Results.Ok(model);
     }
 
-    static async Task<IResult> DeleteTask(string boardId, string taskId, AppDbContext db)
+    static async Task<IResult> DeleteTask(string boardId, string taskId, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
         var entity = await db.Tasks.FirstOrDefaultAsync(t => t.BoardId == boardId && t.Id == taskId);
         if (entity is null) return Results.NotFound();
 
         db.Tasks.Remove(entity);
         await db.SaveChangesAsync();
+
+        await hub.Clients.All.TaskDeleted(boardId, taskId);
         return Results.NoContent();
     }
 

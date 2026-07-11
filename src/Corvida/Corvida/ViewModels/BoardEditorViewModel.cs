@@ -5,12 +5,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Corvida.Messages;
 using Corvida.Models;
 using Corvida.Services;
 
 namespace Corvida.ViewModels;
 
-public partial class BoardEditorViewModel : ViewModelBase
+public partial class BoardEditorViewModel : ViewModelBase,
+    IRecipient<BoardChangedMessage>, IRecipient<BoardDeletedMessage>,
+    IRecipient<TaskChangedMessage>, IRecipient<TaskDeletedMessage>
 {
     private readonly IBoardService _boardService;
     private readonly ITaskService _taskService;
@@ -37,6 +41,45 @@ public partial class BoardEditorViewModel : ViewModelBase
         _dialogService = dialogService;
         _onBack = onBack;
         _onEditTask = onEditTask;
+
+        WeakReferenceMessenger.Default.RegisterAll(this);
+    }
+
+    public void Receive(BoardChangedMessage message)
+    {
+        if (message.Board.Id != Board.Id) return;
+
+        Board.Name = message.Board.Name;
+        Board.Groups.Clear();
+        Board.Groups.AddRange(message.Board.Groups);
+        _ = LoadAsync();
+    }
+
+    public void Receive(BoardDeletedMessage message)
+    {
+        if (message.BoardId != Board.Id) return;
+        _onBack();
+    }
+
+    public void Receive(TaskChangedMessage message)
+    {
+        if (message.BoardId != Board.Id) return;
+
+        foreach (var card in GroupCards)
+        {
+            if (card.Group.Id == message.Task.GroupId)
+                card.UpsertTask(message.Task);
+            else
+                card.RemoveTaskById(message.Task.Id);
+        }
+    }
+
+    public void Receive(TaskDeletedMessage message)
+    {
+        if (message.BoardId != Board.Id) return;
+
+        foreach (var card in GroupCards)
+            card.RemoveTaskById(message.TaskId);
     }
 
     private GroupCardViewModel CreateCard(KanbanGroup group) =>

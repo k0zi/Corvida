@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Corvida.Api.Data;
+using Corvida.Api.Hubs;
 using Corvida.Models;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Corvida.Api.Endpoints;
@@ -32,7 +34,7 @@ public static class BoardEndpoints
         return entity is null ? Results.NotFound() : Results.Ok(ToModel(entity));
     }
 
-    static async Task<IResult> CreateBoard(CreateBoardRequest req, AppDbContext db)
+    static async Task<IResult> CreateBoard(CreateBoardRequest req, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
         var boardId = $"{req.Name}-brd-{Guid.NewGuid().ToString("N")[..8]}";
         var groups = new List<KanbanGroup>
@@ -52,10 +54,12 @@ public static class BoardEndpoints
         db.Boards.Add(entity);
         await db.SaveChangesAsync();
 
-        return Results.Created($"/api/boards/{entity.Id}", ToModel(entity));
+        var model = ToModel(entity);
+        await hub.Clients.All.BoardChanged(model);
+        return Results.Created($"/api/boards/{entity.Id}", model);
     }
 
-    static async Task<IResult> SaveBoard(string id, Board board, AppDbContext db)
+    static async Task<IResult> SaveBoard(string id, Board board, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
         var entity = await db.Boards.FirstOrDefaultAsync(b => b.Id == id);
         if (entity is null) return Results.NotFound();
@@ -64,16 +68,21 @@ public static class BoardEndpoints
         entity.GroupsJson = JsonSerializer.Serialize(board.Groups, JsonOpts);
 
         await db.SaveChangesAsync();
-        return Results.Ok(ToModel(entity));
+
+        var model = ToModel(entity);
+        await hub.Clients.All.BoardChanged(model);
+        return Results.Ok(model);
     }
 
-    static async Task<IResult> DeleteBoard(string id, AppDbContext db)
+    static async Task<IResult> DeleteBoard(string id, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
         var entity = await db.Boards.FirstOrDefaultAsync(b => b.Id == id);
         if (entity is null) return Results.NotFound();
 
         db.Boards.Remove(entity);
         await db.SaveChangesAsync();
+
+        await hub.Clients.All.BoardDeleted(id);
         return Results.NoContent();
     }
 

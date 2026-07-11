@@ -5,6 +5,9 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.Messaging;
+using Corvida.Messages;
 using Corvida.Services;
 using Corvida.ViewModels;
 using Corvida.Views;
@@ -45,6 +48,7 @@ public partial class App : Application
             services.AddSingleton<ITaskService, StorageAwareTaskService>();
 
             services.AddSingleton<IExportService, ExportService>();
+            services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
             services.AddHttpClient("CorvidaApi");
 
             // Pages
@@ -67,6 +71,18 @@ public partial class App : Application
                 mainVm.ActivePage = boardsPage;
                 await boardsPage.RefreshAsync();
             });
+
+            var realtime = Services.GetRequiredService<IRealtimeClient>();
+            realtime.BoardChanged += board =>
+                Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new BoardChangedMessage(board)));
+            realtime.BoardDeleted += boardId =>
+                Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new BoardDeletedMessage(boardId)));
+            realtime.TaskChanged += (boardId, task) =>
+                Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new TaskChangedMessage(boardId, task)));
+            realtime.TaskDeleted += (boardId, taskId) =>
+                Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new TaskDeletedMessage(boardId, taskId)));
+            _ = realtime.StartAsync();
+            desktop.ShutdownRequested += (_, _) => { _ = realtime.StopAsync(); };
 
             desktop.MainWindow = new MainWindow
             {

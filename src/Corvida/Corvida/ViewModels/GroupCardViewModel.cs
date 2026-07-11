@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -71,6 +72,20 @@ public partial class GroupCardViewModel : ViewModelBase
     public void InsertTask(KanbanTask task, int index) => Tasks.Insert(Math.Clamp(index, 0, Tasks.Count), task);
 
     public void RemoveTask(KanbanTask task) => Tasks.Remove(task);
+
+    public void UpsertTask(KanbanTask task)
+    {
+        var idx = Tasks.ToList().FindIndex(t => t.Id == task.Id);
+        if (idx >= 0) Tasks[idx] = task; else Tasks.Add(task);
+        if (!_group.TaskIds.Contains(task.Id)) _group.TaskIds.Add(task.Id);
+    }
+
+    public void RemoveTaskById(string taskId)
+    {
+        var existing = Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (existing is not null) Tasks.Remove(existing);
+        _group.TaskIds.Remove(taskId);
+    }
 
     [RelayCommand]
     private async Task AddTask()

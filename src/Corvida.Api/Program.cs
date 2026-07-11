@@ -1,5 +1,6 @@
 using Corvida.Api.Data;
 using Corvida.Api.Endpoints;
+using Corvida.Api.Hubs;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     ));
 
 builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
 
 // PascalCase JSON — matches desktop System.Text.Json defaults (no PropertyNamingPolicy)
 builder.Services.ConfigureHttpJsonOptions(opt =>
@@ -34,6 +36,7 @@ await db.Database.CreateExecutionStrategy().ExecuteAsync(() => db.Database.Migra
 
 app.MapBoardEndpoints();
 app.MapTaskEndpoints();
+app.MapHub<KanbanHub>("/hubs/kanban");
 
 app.Run();
 

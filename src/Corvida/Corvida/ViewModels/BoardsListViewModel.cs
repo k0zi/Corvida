@@ -1,14 +1,18 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Corvida.Messages;
 using Corvida.Models;
 using Corvida.Services;
 
 namespace Corvida.ViewModels;
 
-public partial class BoardsListViewModel : ViewModelBase
+public partial class BoardsListViewModel : ViewModelBase,
+    IRecipient<BoardChangedMessage>, IRecipient<BoardDeletedMessage>
 {
     private readonly IBoardService _boardService;
     private readonly IDialogService _dialogService;
@@ -22,6 +26,20 @@ public partial class BoardsListViewModel : ViewModelBase
         _boardService = boardService;
         _dialogService = dialogService;
         _onEditBoard = onEditBoard;
+
+        WeakReferenceMessenger.Default.RegisterAll(this);
+    }
+
+    public void Receive(BoardChangedMessage message)
+    {
+        var idx = Boards.ToList().FindIndex(b => b.Id == message.Board.Id);
+        if (idx >= 0) Boards[idx] = message.Board; else Boards.Add(message.Board);
+    }
+
+    public void Receive(BoardDeletedMessage message)
+    {
+        var existing = Boards.FirstOrDefault(b => b.Id == message.BoardId);
+        if (existing is not null) Boards.Remove(existing);
     }
 
     public async Task LoadAsync()
