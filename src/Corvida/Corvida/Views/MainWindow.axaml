@@ -9,7 +9,10 @@
                    x:Class="Corvida.Views.MainWindow"
                    x:DataType="vm:MainWindowViewModel"
                    Icon="/Assets/corvida.png"
-                   Title="Corvida">
+                   Title="Corvida"
+                   Width="1080"
+                   Height="620"
+                   CanResize="True">
 
     <sukiUi:SukiWindow.LogoContent>
         <Image Width="24" Height="24" Source="/Assets/corvida.png"/>
