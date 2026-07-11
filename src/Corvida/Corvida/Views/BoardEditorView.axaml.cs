@@ -40,7 +40,7 @@ public partial class BoardEditorView : UserControl
     {
         if (!e.DataTransfer.Contains(DragTaskFormat) || _draggedTask is null || _dragSourceGroup is null) return;
         if (sender is not Control ctrl || ctrl.DataContext is not GroupCardViewModel targetGroup) return;
-        if (DataContext is not BoardEditorViewModel vm) return;
+        if (DataContext is not BoardEditorViewModel { IsReadOnly: false } vm) return;
 
         var insertIndex = FindInsertIndex(e.GetPosition(ctrl), ctrl, targetGroup);
         await vm.MoveTaskAsync(_draggedTask, _dragSourceGroup, targetGroup, insertIndex);
@@ -49,6 +49,7 @@ public partial class BoardEditorView : UserControl
 
     private async void TaskCard_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (DataContext is BoardEditorViewModel { IsReadOnly: true }) return;
         if (!e.GetCurrentPoint(null).Properties.IsLeftButtonPressed) return;
         if (e.Source is Button || (e.Source as Control)?.FindAncestorOfType<Button>() is not null) return;
         if (sender is not Control ctrl || ctrl.DataContext is not KanbanTask task) return;

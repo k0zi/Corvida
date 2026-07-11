@@ -163,4 +163,72 @@ public class BoardServiceTests : IDisposable
         var b = await _sut.CreateBoardAsync("Board");
         Assert.NotEqual(a.Id, b.Id);
     }
+
+    [Fact]
+    public async Task ArchiveBoardAsync_RemovesBoardFromGetBoardsAsync()
+    {
+        var board = await _sut.CreateBoardAsync("ToArchive");
+        await _sut.ArchiveBoardAsync(board.Id);
+
+        var boards = await _sut.GetBoardsAsync();
+        Assert.Empty(boards);
+    }
+
+    [Fact]
+    public async Task ArchiveBoardAsync_AddsBoardToGetArchivedBoardsAsync()
+    {
+        var board = await _sut.CreateBoardAsync("ToArchive");
+        await _sut.ArchiveBoardAsync(board.Id);
+
+        var archived = await _sut.GetArchivedBoardsAsync();
+        Assert.Single(archived);
+        Assert.Equal(board.Id, archived[0].Id);
+        Assert.True(archived[0].IsArchived);
+    }
+
+    [Fact]
+    public async Task RestoreBoardAsync_MovesBoardBackToGetBoardsAsync()
+    {
+        var board = await _sut.CreateBoardAsync("RoundTrip");
+        await _sut.ArchiveBoardAsync(board.Id);
+        await _sut.RestoreBoardAsync(board.Id);
+
+        var boards = await _sut.GetBoardsAsync();
+        var archived = await _sut.GetArchivedBoardsAsync();
+
+        Assert.Single(boards);
+        Assert.Empty(archived);
+        Assert.False(boards[0].IsArchived);
+    }
+
+    [Fact]
+    public async Task ArchiveBoardAsync_Throws_WhenBoardDoesNotExist()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _sut.ArchiveBoardAsync("nonexistent-brd-00000000"));
+    }
+
+    [Fact]
+    public async Task SaveBoardAsync_Throws_WhenBoardIsArchived()
+    {
+        var board = await _sut.CreateBoardAsync("Locked");
+        await _sut.ArchiveBoardAsync(board.Id);
+
+        board.Name = "Renamed";
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.SaveBoardAsync(board));
+    }
+
+    [Fact]
+    public async Task SaveBoardAsync_Succeeds_AfterRestoring()
+    {
+        var board = await _sut.CreateBoardAsync("Locked");
+        await _sut.ArchiveBoardAsync(board.Id);
+        await _sut.RestoreBoardAsync(board.Id);
+
+        board.Name = "Renamed";
+        await _sut.SaveBoardAsync(board);
+
+        var boards = await _sut.GetBoardsAsync();
+        Assert.Equal("Renamed", boards[0].Name);
+    }
 }

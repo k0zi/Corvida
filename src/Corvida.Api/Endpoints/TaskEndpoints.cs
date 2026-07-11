@@ -26,6 +26,8 @@ public static class TaskEndpoints
 
     static async Task<IResult> UpsertTask(string boardId, string taskId, KanbanTask task, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
+        if (await IsBoardArchived(boardId, db)) return Results.Conflict("This board is archived and cannot be modified.");
+
         var entity = await db.Tasks.FirstOrDefaultAsync(t => t.BoardId == boardId && t.Id == taskId);
 
         if (entity is null)
@@ -51,6 +53,8 @@ public static class TaskEndpoints
 
     static async Task<IResult> DeleteTask(string boardId, string taskId, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
+        if (await IsBoardArchived(boardId, db)) return Results.Conflict("This board is archived and cannot be modified.");
+
         var entity = await db.Tasks.FirstOrDefaultAsync(t => t.BoardId == boardId && t.Id == taskId);
         if (entity is null) return Results.NotFound();
 
@@ -60,6 +64,12 @@ public static class TaskEndpoints
         await hub.Clients.All.TaskDeleted(boardId, taskId);
         return Results.NoContent();
     }
+
+    private static async Task<bool> IsBoardArchived(string boardId, AppDbContext db) =>
+        await db.Boards.AsNoTracking()
+            .Where(b => b.Id == boardId)
+            .Select(b => b.IsArchived)
+            .FirstOrDefaultAsync();
 
     private static KanbanTask ToModel(TaskEntity e) => new()
     {

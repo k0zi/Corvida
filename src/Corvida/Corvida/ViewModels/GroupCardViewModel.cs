@@ -21,6 +21,7 @@ public partial class GroupCardViewModel : ViewModelBase
     private readonly Func<KanbanTask, GroupCardViewModel, Task> _onTransfer;
 
     public string GroupName => _group.Name;
+    public bool IsReadOnly { get; }
 
     [ObservableProperty]
     private ObservableCollection<KanbanTask> _tasks = new();
@@ -33,7 +34,8 @@ public partial class GroupCardViewModel : ViewModelBase
         IDialogService dialogService,
         Action<KanbanTask> onEditTask,
         Func<GroupCardViewModel, Task> onDelete,
-        Func<KanbanTask, GroupCardViewModel, Task> onTransfer)
+        Func<KanbanTask, GroupCardViewModel, Task> onTransfer,
+        bool isReadOnly = false)
     {
         _group = group;
         _board = board;
@@ -43,6 +45,7 @@ public partial class GroupCardViewModel : ViewModelBase
         _onEditTask = onEditTask;
         _onDelete = onDelete;
         _onTransfer = onTransfer;
+        IsReadOnly = isReadOnly;
     }
 
     public async Task LoadTasksAsync()
@@ -90,6 +93,8 @@ public partial class GroupCardViewModel : ViewModelBase
     [RelayCommand]
     private async Task AddTask()
     {
+        if (IsReadOnly) return;
+
         var title = await _dialogService.ShowInputDialogAsync("Add Task", "Task title:", "Enter task title");
         if (title is null) return;
 
@@ -109,14 +114,24 @@ public partial class GroupCardViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void EditTask(KanbanTask task) => _onEditTask(task);
+    private void EditTask(KanbanTask task)
+    {
+        if (IsReadOnly) return;
+        _onEditTask(task);
+    }
 
     [RelayCommand]
-    private async Task TransferTask(KanbanTask task) => await _onTransfer(task, this);
+    private async Task TransferTask(KanbanTask task)
+    {
+        if (IsReadOnly) return;
+        await _onTransfer(task, this);
+    }
 
     [RelayCommand]
     private async Task DeleteTask(KanbanTask task)
     {
+        if (IsReadOnly) return;
+
         var confirmed = await _dialogService.ShowConfirmDialogAsync(
             "Delete Task", $"Delete task '{task.Title}'?");
         if (!confirmed) return;
@@ -128,7 +143,11 @@ public partial class GroupCardViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task DeleteGroup() => await _onDelete(this);
+    private async Task DeleteGroup()
+    {
+        if (IsReadOnly) return;
+        await _onDelete(this);
+    }
 
     public KanbanGroup Group => _group;
 }

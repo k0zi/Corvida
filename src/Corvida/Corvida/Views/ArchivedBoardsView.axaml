@@ -7,18 +7,12 @@
              xmlns:vm="using:Corvida.ViewModels"
              xmlns:models="using:Corvida.Models"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
-             x:Class="Corvida.Views.BoardsListView"
-             x:DataType="vm:BoardsListViewModel">
+             x:Class="Corvida.Views.ArchivedBoardsView"
+             x:DataType="vm:ArchivedBoardsViewModel">
 
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0 0 0 16">
-            <TextBlock Text="Boards" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Button Command="{Binding CreateBoardCommand}" Classes="Flat" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                    <materialIcons:MaterialIcon Kind="Plus" Width="16" Height="16"/>
-                    <TextBlock Text="New Board"/>
-                </StackPanel>
-            </Button>
+            <TextBlock Text="Archived Boards" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
         </StackPanel>
 
         <ScrollViewer>
@@ -35,18 +29,18 @@
                                     </StackPanel>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                                    <Button Command="{Binding $parent[ItemsControl].((vm:BoardsListViewModel)DataContext).EditBoardCommand}"
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:ArchivedBoardsViewModel)DataContext).RestoreBoardCommand}"
                                             CommandParameter="{Binding}"
                                             Classes="Basic">
                                         <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <materialIcons:MaterialIcon Kind="Pencil" Width="16" Height="16"/>
-                                            <TextBlock Text="Edit"/>
+                                            <materialIcons:MaterialIcon Kind="ArchiveArrowUpOutline" Width="16" Height="16"/>
+                                            <TextBlock Text="Restore"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Command="{Binding $parent[ItemsControl].((vm:BoardsListViewModel)DataContext).ArchiveBoardCommand}"
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:ArchivedBoardsViewModel)DataContext).DeleteBoardCommand}"
                                             CommandParameter="{Binding}"
-                                            Classes="Basic">
-                                        <materialIcons:MaterialIcon Kind="Archive" Width="16" Height="16"/>
+                                            Classes="Basic Danger">
+                                        <materialIcons:MaterialIcon Kind="Delete" Width="16" Height="16"/>
                                     </Button>
                                 </StackPanel>
                             </Grid>

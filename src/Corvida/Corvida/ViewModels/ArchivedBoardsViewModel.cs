@@ -8,33 +8,41 @@ using CommunityToolkit.Mvvm.Messaging;
 using Corvida.Messages;
 using Corvida.Models;
 using Corvida.Services;
+using Material.Icons;
 
 namespace Corvida.ViewModels;
 
-public partial class BoardsListViewModel : ViewModelBase,
+public partial class ArchivedBoardsViewModel : PageBase,
     IRecipient<BoardChangedMessage>, IRecipient<BoardDeletedMessage>
 {
     private readonly IBoardService _boardService;
     private readonly IDialogService _dialogService;
-    private readonly Action<Board> _onEditBoard;
+    private Action<Board>? _onViewBoard;
 
     [ObservableProperty]
     private ObservableCollection<Board> _boards = new();
 
-    public BoardsListViewModel(IBoardService boardService, IDialogService dialogService, Action<Board> onEditBoard)
+    public override string MenuTitle => "Archived Boards";
+    public override MaterialIconKind Icon => MaterialIconKind.Archive;
+    public override int DisplayOrder => 50;
+
+    public ArchivedBoardsViewModel(IBoardService boardService, IDialogService dialogService)
     {
         _boardService = boardService;
         _dialogService = dialogService;
-        _onEditBoard = onEditBoard;
 
         WeakReferenceMessenger.Default.RegisterAll(this);
+
+        _ = LoadAsync();
     }
+
+    public void SetOnViewBoard(Action<Board> onViewBoard) => _onViewBoard = onViewBoard;
 
     public void Receive(BoardChangedMessage message)
     {
         var idx = Boards.ToList().FindIndex(b => b.Id == message.Board.Id);
 
-        if (message.Board.IsArchived)
+        if (!message.Board.IsArchived)
         {
             if (idx >= 0) Boards.RemoveAt(idx);
             return;
@@ -51,31 +59,32 @@ public partial class BoardsListViewModel : ViewModelBase,
 
     public async Task LoadAsync()
     {
-        var boards = await _boardService.GetBoardsAsync();
+        var boards = await _boardService.GetArchivedBoardsAsync();
         Boards = new ObservableCollection<Board>(boards);
     }
 
     [RelayCommand]
-    private async Task CreateBoard()
-    {
-        var name = await _dialogService.ShowInputDialogAsync("Create Board", "Board name:", "Enter board name");
-        if (name is null) return;
+    private void ViewBoard(Board board) => _onViewBoard?.Invoke(board);
 
-        var board = await _boardService.CreateBoardAsync(name);
-        Boards.Add(board);
+    [RelayCommand]
+    private async Task RestoreBoard(Board board)
+    {
+        var confirmed = await _dialogService.ShowConfirmDialogAsync(
+            "Restore Board", $"Restore board '{board.Name}' back to your live boards?");
+        if (!confirmed) return;
+
+        await _boardService.RestoreBoardAsync(board.Id);
+        Boards.Remove(board);
     }
 
     [RelayCommand]
-    private void EditBoard(Board board) => _onEditBoard(board);
-
-    [RelayCommand]
-    private async Task ArchiveBoard(Board board)
+    private async Task DeleteBoard(Board board)
     {
         var confirmed = await _dialogService.ShowConfirmDialogAsync(
-            "Archive Board", $"Archive board '{board.Name}'? You can restore it later from Archived Boards.");
+            "Delete Board", $"Permanently delete board '{board.Name}'? This cannot be undone.");
         if (!confirmed) return;
 
-        await _boardService.ArchiveBoardAsync(board.Id);
+        await _boardService.DeleteBoardAsync(board.Id);
         Boards.Remove(board);
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Corvida.Models;
 using Corvida.Services;
 
@@ -148,5 +149,52 @@ public class TaskServiceTests : IDisposable
         await _sut.DeleteTaskAsync(task.BoardId, task.Id);
         var result = await _sut.GetTaskAsync(task.BoardId, task.Id);
         Assert.Null(result);
+    }
+
+    private async Task WriteBoardJsonAsync(string boardId, bool isArchived)
+    {
+        var boardDir = Path.Combine(_dir.Path, "boards", boardId);
+        Directory.CreateDirectory(boardDir);
+        var board = new Board { Id = boardId, Name = "Test Board", IsArchived = isArchived };
+        await File.WriteAllTextAsync(Path.Combine(boardDir, "board.json"), JsonSerializer.Serialize(board));
+    }
+
+    [Fact]
+    public async Task SaveTaskAsync_Throws_WhenBoardIsArchived()
+    {
+        await WriteBoardJsonAsync("board-1", isArchived: true);
+        var task = MakeTask();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.SaveTaskAsync(task));
+    }
+
+    [Fact]
+    public async Task DeleteTaskAsync_Throws_WhenBoardIsArchived()
+    {
+        await WriteBoardJsonAsync("board-1", isArchived: true);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.DeleteTaskAsync("board-1", "task-1"));
+    }
+
+    [Fact]
+    public async Task SaveTaskAsync_Succeeds_WhenBoardIsNotArchived()
+    {
+        await WriteBoardJsonAsync("board-1", isArchived: false);
+        var task = MakeTask();
+
+        await _sut.SaveTaskAsync(task);
+
+        var result = await _sut.GetTaskAsync(task.BoardId, task.Id);
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task SaveTaskAsync_Succeeds_WhenBoardJsonDoesNotExist()
+    {
+        var task = MakeTask();
+        await _sut.SaveTaskAsync(task);
+
+        var result = await _sut.GetTaskAsync(task.BoardId, task.Id);
+        Assert.NotNull(result);
     }
 }

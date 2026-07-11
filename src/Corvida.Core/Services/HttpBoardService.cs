@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -17,6 +18,18 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         try
         {
             return await Client.GetFromJsonAsync<List<Board>>($"{Base}/api/boards") ?? [];
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+        }
+    }
+
+    public async Task<List<Board>> GetArchivedBoardsAsync()
+    {
+        try
+        {
+            return await Client.GetFromJsonAsync<List<Board>>($"{Base}/api/boards/archived") ?? [];
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
@@ -43,6 +56,36 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         try
         {
             var resp = await Client.PutAsJsonAsync($"{Base}/api/boards/{board.Id}", board);
+            resp.EnsureSuccessStatusCode();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
+        {
+            throw new InvalidOperationException("This board is archived and cannot be modified.", ex);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+        }
+    }
+
+    public async Task ArchiveBoardAsync(string boardId)
+    {
+        try
+        {
+            var resp = await Client.PostAsync($"{Base}/api/boards/{boardId}/archive", null);
+            resp.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+        }
+    }
+
+    public async Task RestoreBoardAsync(string boardId)
+    {
+        try
+        {
+            var resp = await Client.PostAsync($"{Base}/api/boards/{boardId}/restore", null);
             resp.EnsureSuccessStatusCode();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

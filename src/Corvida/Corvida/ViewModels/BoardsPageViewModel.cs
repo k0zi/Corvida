@@ -56,7 +56,7 @@ public partial class BoardsPageViewModel : PageBase
         CurrentViewModel = _navStack.Peek();
     }
 
-    private void NavigateToBoardEditor(Board board)
+    public void NavigateToBoardEditor(Board board)
     {
         var editorVm = new BoardEditorViewModel(
             board, _boardService, _taskService, _dialogService,

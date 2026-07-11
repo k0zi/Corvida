@@ -16,15 +16,24 @@ public static class BoardEndpoints
         var g = app.MapGroup("/api/boards");
 
         g.MapGet("/", GetBoards);
+        g.MapGet("/archived", GetArchivedBoards);
         g.MapPost("/", CreateBoard);
         g.MapGet("/{id}", GetBoard);
         g.MapPut("/{id}", SaveBoard);
         g.MapDelete("/{id}", DeleteBoard);
+        g.MapPost("/{id}/archive", ArchiveBoard);
+        g.MapPost("/{id}/restore", RestoreBoard);
     }
 
     static async Task<IResult> GetBoards(AppDbContext db)
     {
-        var entities = await db.Boards.AsNoTracking().ToListAsync();
+        var entities = await db.Boards.AsNoTracking().Where(b => !b.IsArchived).ToListAsync();
+        return Results.Ok(entities.Select(ToModel).ToList());
+    }
+
+    static async Task<IResult> GetArchivedBoards(AppDbContext db)
+    {
+        var entities = await db.Boards.AsNoTracking().Where(b => b.IsArchived).ToListAsync();
         return Results.Ok(entities.Select(ToModel).ToList());
     }
 
@@ -63,6 +72,7 @@ public static class BoardEndpoints
     {
         var entity = await db.Boards.FirstOrDefaultAsync(b => b.Id == id);
         if (entity is null) return Results.NotFound();
+        if (entity.IsArchived) return Results.Conflict("This board is archived and cannot be modified.");
 
         entity.Name = board.Name;
         entity.GroupsJson = JsonSerializer.Serialize(board.Groups, JsonOpts);
@@ -86,11 +96,38 @@ public static class BoardEndpoints
         return Results.NoContent();
     }
 
+    static async Task<IResult> ArchiveBoard(string id, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
+    {
+        var entity = await db.Boards.FirstOrDefaultAsync(b => b.Id == id);
+        if (entity is null) return Results.NotFound();
+
+        entity.IsArchived = true;
+        await db.SaveChangesAsync();
+
+        var model = ToModel(entity);
+        await hub.Clients.All.BoardChanged(model);
+        return Results.Ok(model);
+    }
+
+    static async Task<IResult> RestoreBoard(string id, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
+    {
+        var entity = await db.Boards.FirstOrDefaultAsync(b => b.Id == id);
+        if (entity is null) return Results.NotFound();
+
+        entity.IsArchived = false;
+        await db.SaveChangesAsync();
+
+        var model = ToModel(entity);
+        await hub.Clients.All.BoardChanged(model);
+        return Results.Ok(model);
+    }
+
     internal static Board ToModel(BoardEntity e) => new()
     {
         Id = e.Id,
         Name = e.Name,
         Groups = JsonSerializer.Deserialize<List<KanbanGroup>>(e.GroupsJson, JsonOpts) ?? [],
+        IsArchived = e.IsArchived,
     };
 }
 

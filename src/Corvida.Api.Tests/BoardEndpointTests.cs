@@ -155,6 +155,80 @@ public class BoardEndpointTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NotFound, taskResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task GetBoards_ExcludesArchivedBoards()
+    {
+        var board = await PostBoard("Will Archive");
+        await _client.PostAsync($"/api/boards/{board.Id}/archive", null);
+
+        var response = await _client.GetAsync("/api/boards");
+
+        var boards = await response.Content.ReadFromJsonAsync<List<Board>>(JsonOpts);
+        Assert.NotNull(boards);
+        Assert.Empty(boards);
+    }
+
+    [Fact]
+    public async Task GetArchivedBoards_ReturnsArchivedBoard()
+    {
+        var board = await PostBoard("Will Archive");
+        await _client.PostAsync($"/api/boards/{board.Id}/archive", null);
+
+        var response = await _client.GetAsync("/api/boards/archived");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var boards = await response.Content.ReadFromJsonAsync<List<Board>>(JsonOpts);
+        Assert.NotNull(boards);
+        Assert.Single(boards);
+        Assert.Equal(board.Id, boards[0].Id);
+        Assert.True(boards[0].IsArchived);
+    }
+
+    [Fact]
+    public async Task ArchiveBoard_Returns404_ForUnknownId()
+    {
+        var response = await _client.PostAsync("/api/boards/no-such-board/archive", null);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RestoreBoard_MovesBoardBackToLiveList()
+    {
+        var board = await PostBoard("Round Trip");
+        await _client.PostAsync($"/api/boards/{board.Id}/archive", null);
+
+        var restoreResponse = await _client.PostAsync($"/api/boards/{board.Id}/restore", null);
+        Assert.Equal(HttpStatusCode.OK, restoreResponse.StatusCode);
+
+        var liveResponse = await _client.GetAsync("/api/boards");
+        var liveBoards = await liveResponse.Content.ReadFromJsonAsync<List<Board>>(JsonOpts);
+        Assert.NotNull(liveBoards);
+        Assert.Contains(liveBoards, b => b.Id == board.Id);
+    }
+
+    [Fact]
+    public async Task SaveBoard_Returns409_WhenBoardIsArchived()
+    {
+        var board = await PostBoard("Locked");
+        await _client.PostAsync($"/api/boards/{board.Id}/archive", null);
+
+        board.Name = "Renamed";
+        var response = await _client.PutAsJsonAsync($"/api/boards/{board.Id}", board);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteBoard_Succeeds_WhenBoardIsArchived()
+    {
+        var board = await PostBoard("To Delete Archived");
+        await _client.PostAsync($"/api/boards/{board.Id}/archive", null);
+
+        var response = await _client.DeleteAsync($"/api/boards/{board.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
     private async Task<Board> PostBoard(string name)
     {
         var response = await _client.PostAsJsonAsync("/api/boards", new { Name = name });

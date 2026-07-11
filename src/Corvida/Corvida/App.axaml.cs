@@ -53,6 +53,7 @@ public partial class App : Application
 
             // Pages
             services.AddTransient<PageBase, BoardsPageViewModel>();
+            services.AddTransient<PageBase, ArchivedBoardsViewModel>();
             services.AddTransient<PageBase, SettingsViewModel>();
 
             // Register main view model
@@ -65,11 +66,17 @@ public partial class App : Application
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
             var boardsPage = mainVm.Pages.OfType<BoardsPageViewModel>().First();
+            var archivedPage = mainVm.Pages.OfType<ArchivedBoardsViewModel>().First();
             var settingsPage = mainVm.Pages.OfType<SettingsViewModel>().First();
             settingsPage.SetOnSaved(async () =>
             {
                 mainVm.ActivePage = boardsPage;
                 await boardsPage.RefreshAsync();
+            });
+            archivedPage.SetOnViewBoard(board =>
+            {
+                mainVm.ActivePage = boardsPage;
+                boardsPage.NavigateToBoardEditor(board);
             });
 
             var realtime = Services.GetRequiredService<IRealtimeClient>();

@@ -141,6 +141,42 @@ public class TaskEndpointTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    [Fact]
+    public async Task UpsertTask_Returns409_WhenBoardIsArchived()
+    {
+        await _client.PostAsync($"/api/boards/{_seedBoard.Id}/archive", null);
+        var task = MakeTask("archived-board-task");
+
+        var response = await _client.PutAsJsonAsync(
+            $"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteTask_Returns409_WhenBoardIsArchived()
+    {
+        var task = MakeTask("delete-archived-task");
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+        await _client.PostAsync($"/api/boards/{_seedBoard.Id}/archive", null);
+
+        var response = await _client.DeleteAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}");
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetTask_StillWorks_WhenBoardIsArchived()
+    {
+        var task = MakeTask("read-archived-task");
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+        await _client.PostAsync($"/api/boards/{_seedBoard.Id}/archive", null);
+
+        var response = await _client.GetAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     private KanbanTask MakeTask(string id) => new()
     {
         Id = id,

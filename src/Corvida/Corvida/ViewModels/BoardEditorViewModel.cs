@@ -27,6 +27,9 @@ public partial class BoardEditorViewModel : ViewModelBase,
     [ObservableProperty]
     private ObservableCollection<GroupCardViewModel> _groupCards = new();
 
+    [ObservableProperty]
+    private bool _isReadOnly;
+
     public BoardEditorViewModel(
         Board board,
         IBoardService boardService,
@@ -41,6 +44,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
         _dialogService = dialogService;
         _onBack = onBack;
         _onEditTask = onEditTask;
+        _isReadOnly = board.IsArchived;
 
         WeakReferenceMessenger.Default.RegisterAll(this);
     }
@@ -52,6 +56,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
         Board.Name = message.Board.Name;
         Board.Groups.Clear();
         Board.Groups.AddRange(message.Board.Groups);
+        Board.IsArchived = message.Board.IsArchived;
+        IsReadOnly = message.Board.IsArchived;
         _ = LoadAsync();
     }
 
@@ -84,7 +90,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
 
     private GroupCardViewModel CreateCard(KanbanGroup group) =>
         new(group, Board, _boardService, _taskService, _dialogService,
-            _onEditTask, DeleteGroupAsync, TransferTaskAsync);
+            _onEditTask, DeleteGroupAsync, TransferTaskAsync, IsReadOnly);
 
     public async Task LoadAsync()
     {
@@ -105,6 +111,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
 
     public async Task MoveTaskAsync(KanbanTask task, GroupCardViewModel source, GroupCardViewModel target, int insertIndex)
     {
+        if (IsReadOnly) return;
+
         if (source == target)
         {
             var currentIndex = source.Tasks.IndexOf(task);
@@ -139,6 +147,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
 
     private async Task TransferTaskAsync(KanbanTask task, GroupCardViewModel source)
     {
+        if (IsReadOnly) return;
+
         var others = GroupCards.Where(c => c != source).ToList();
         if (others.Count == 0) return;
 
@@ -162,6 +172,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
     [RelayCommand]
     private async Task AddGroup()
     {
+        if (IsReadOnly) return;
+
         var name = await _dialogService.ShowInputDialogAsync("Add Group", "Group name:", "e.g. To-Do");
         if (name is null) return;
 
@@ -178,6 +190,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
 
     private async Task DeleteGroupAsync(GroupCardViewModel card)
     {
+        if (IsReadOnly) return;
+
         var confirmed = await _dialogService.ShowConfirmDialogAsync(
             "Delete Group", $"Delete group '{card.GroupName}' and all its tasks?");
         if (!confirmed) return;
