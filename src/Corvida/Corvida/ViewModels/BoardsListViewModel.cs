@@ -76,6 +76,7 @@ public partial class BoardsListViewModel : ViewModelBase,
         if (!confirmed) return;
 
         await _boardService.ArchiveBoardAsync(board.Id);
-        Boards.Remove(board);
+        board.IsArchived = true;
+        WeakReferenceMessenger.Default.Send(new BoardChangedMessage(board));
     }
 }

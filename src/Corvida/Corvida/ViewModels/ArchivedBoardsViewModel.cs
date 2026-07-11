@@ -74,7 +74,8 @@ public partial class ArchivedBoardsViewModel : PageBase,
         if (!confirmed) return;
 
         await _boardService.RestoreBoardAsync(board.Id);
-        Boards.Remove(board);
+        board.IsArchived = false;
+        WeakReferenceMessenger.Default.Send(new BoardChangedMessage(board));
     }
 
     [RelayCommand]
@@ -85,6 +86,6 @@ public partial class ArchivedBoardsViewModel : PageBase,
         if (!confirmed) return;
 
         await _boardService.DeleteBoardAsync(board.Id);
-        Boards.Remove(board);
+        WeakReferenceMessenger.Default.Send(new BoardDeletedMessage(board.Id));
     }
 }
