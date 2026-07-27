@@ -48,8 +48,8 @@ public partial class TaskEditorViewModel : ViewModelBase
         _task.Title = Title.Trim();
         _task.Description = Description;
         _task.Priority = SelectedPriority;
-        _task.PlannedStart = PlannedStart?.DateTime;
-        _task.PlannedEnd = PlannedEnd?.DateTime;
+        _task.PlannedStart = PlannedStart?.UtcDateTime;
+        _task.PlannedEnd = PlannedEnd?.UtcDateTime;
         await _taskService.SaveTaskAsync(_task);
         _onSaved(_task);
     }
