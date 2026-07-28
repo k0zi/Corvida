@@ -9,60 +9,123 @@
              x:Class="Corvida.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
 
-    <StackPanel Margin="16" Spacing="16">
-        <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold"/>
-
-        <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+    <Grid Margin="16" RowDefinitions="Auto,*">
+        <TextBlock Grid.Row="0" Text="Settings" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,16" />
+        <ScrollViewer Grid.Row="1" AllowAutoHide="True">
             <StackPanel Spacing="16">
+                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                    <StackPanel Spacing="16">
 
-                <!-- Storage Mode -->
-                <StackPanel Spacing="6">
-                    <TextBlock Text="Storage Mode" FontWeight="Medium"/>
-                    <TextBlock Text="Where boards and tasks are stored."
-                               FontSize="12" Opacity="0.6"/>
-                    <RadioButton Content="Local Folder" IsChecked="{Binding IsLocalFolder}"/>
-                    <RadioButton Content="Server Hosted" IsChecked="{Binding IsServerHosted}"/>
-                </StackPanel>
+                        <!-- Storage Mode -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Storage Mode" FontWeight="Medium" />
+                            <TextBlock Text="Where boards and tasks are stored."
+                                       FontSize="12" Opacity="0.6" />
+                            <RadioButton Content="Local Folder" IsChecked="{Binding IsLocalFolder}" />
+                            <RadioButton Content="Server Hosted" IsChecked="{Binding IsServerHosted}" />
+                        </StackPanel>
 
-                <!-- Data Path — LocalFolder mode only -->
-                <StackPanel Spacing="6" IsVisible="{Binding IsLocalFolder}">
-                    <TextBlock Text="Data Path" FontWeight="Medium"/>
-                    <TextBlock Text="The folder where boards and tasks are stored."
-                               FontSize="12" Opacity="0.6"/>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                        <TextBox Grid.Column="0" Text="{Binding DataPath}" PlaceholderText="~/CorvidaData"/>
-                        <Button Grid.Column="1" Click="BrowseFolder_Click" Classes="Basic">
-                            <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18"/>
+                        <!-- Data Path — LocalFolder mode only -->
+                        <StackPanel Spacing="6" IsVisible="{Binding IsLocalFolder}">
+                            <TextBlock Text="Data Path" FontWeight="Medium" />
+                            <TextBlock Text="The folder where boards and tasks are stored."
+                                       FontSize="12" Opacity="0.6" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding DataPath}" PlaceholderText="~/CorvidaData" />
+                                <Button Grid.Column="1" Click="BrowseFolder_Click" Classes="Basic">
+                                    <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Server URL — ServerHosted mode only -->
+                        <StackPanel Spacing="6" IsVisible="{Binding IsServerHosted}">
+                            <TextBlock Text="Server URL" FontWeight="Medium" />
+                            <TextBlock Text="Base URL of the Corvida API server (e.g. http://localhost:5000)."
+                                       FontSize="12" Opacity="0.6" />
+                            <TextBox Text="{Binding ServerUrl}" PlaceholderText="http://localhost:5000" />
+                        </StackPanel>
+
+                        <!-- Export — ServerHosted mode only -->
+                        <Button IsVisible="{Binding IsServerHosted}"
+                                Click="ExportToFolder_Click"
+                                Classes="Basic" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <materialIcons:MaterialIcon Kind="Export" Width="16" Height="16" />
+                                <TextBlock Text="Export to Local Folder..." />
+                            </StackPanel>
                         </Button>
-                    </Grid>
-                </StackPanel>
 
-                <!-- Server URL — ServerHosted mode only -->
-                <StackPanel Spacing="6" IsVisible="{Binding IsServerHosted}">
-                    <TextBlock Text="Server URL" FontWeight="Medium"/>
-                    <TextBlock Text="Base URL of the Corvida API server (e.g. http://localhost:5000)."
-                               FontSize="12" Opacity="0.6"/>
-                    <TextBox Text="{Binding ServerUrl}" PlaceholderText="http://localhost:5000"/>
-                </StackPanel>
+                        <Button Command="{Binding SaveCommand}" Classes="Flat" HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16" />
+                                <TextBlock Text="Save Settings" />
+                            </StackPanel>
+                        </Button>
 
-                <!-- Export — ServerHosted mode only -->
-                <Button IsVisible="{Binding IsServerHosted}"
-                        Click="ExportToFolder_Click"
-                        Classes="Basic" HorizontalAlignment="Left">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <materialIcons:MaterialIcon Kind="Export" Width="16" Height="16"/>
-                        <TextBlock Text="Export to Local Folder..."/>
                     </StackPanel>
-                </Button>
+                </sukiUi:GlassCard>
 
-                <Button Command="{Binding SaveCommand}" Classes="Flat" HorizontalAlignment="Left">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16"/>
-                        <TextBlock Text="Save Settings"/>
+                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                    <StackPanel Spacing="16">
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Install Skills" FontWeight="Medium" />
+                            <TextBlock Text="Install the Corvida Kanban skills into an AI tool's skills folder."
+                                       FontSize="12" Opacity="0.6" />
+                        </StackPanel>
+
+                        <!-- Claude Code -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Claude Code" FontWeight="Medium" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding ClaudeCodeSkillsPath}" />
+                                <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeSkillsInstalled}"
+                                        Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="Flat">
+                                    <TextBlock Text="Install" />
+                                </Button>
+                                <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeSkillsInstalled}"
+                                        Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="Basic Danger">
+                                    <TextBlock Text="Uninstall" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- OpenCode -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="OpenCode" FontWeight="Medium" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding OpencodeSkillsPath}" />
+                                <Button Grid.Column="1" IsVisible="{Binding !OpencodeSkillsInstalled}"
+                                        Command="{Binding ToggleOpencodeSkillsCommand}" Classes="Flat">
+                                    <TextBlock Text="Install" />
+                                </Button>
+                                <Button Grid.Column="1" IsVisible="{Binding OpencodeSkillsInstalled}"
+                                        Command="{Binding ToggleOpencodeSkillsCommand}" Classes="Basic Danger">
+                                    <TextBlock Text="Uninstall" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Hermes -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Hermes" FontWeight="Medium" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding HermesSkillsPath}" />
+                                <Button Grid.Column="1" IsVisible="{Binding !HermesSkillsInstalled}"
+                                        Command="{Binding ToggleHermesSkillsCommand}" Classes="Flat">
+                                    <TextBlock Text="Install" />
+                                </Button>
+                                <Button Grid.Column="1" IsVisible="{Binding HermesSkillsInstalled}"
+                                        Command="{Binding ToggleHermesSkillsCommand}" Classes="Basic Danger">
+                                    <TextBlock Text="Uninstall" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
                     </StackPanel>
-                </Button>
-
+                </sukiUi:GlassCard>
             </StackPanel>
-        </sukiUi:GlassCard>
-    </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

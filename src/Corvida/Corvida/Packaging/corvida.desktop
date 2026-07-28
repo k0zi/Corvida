@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Corvida
+Comment=Kanban board manager
+Exec=/usr/bin/corvida
+Icon=corvida
+Terminal=false
+Categories=Office;ProjectManagement;
+StartupWMClass=Corvida

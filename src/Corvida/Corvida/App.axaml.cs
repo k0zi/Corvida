@@ -48,6 +48,7 @@ public partial class App : Application
             services.AddSingleton<ITaskService, StorageAwareTaskService>();
 
             services.AddSingleton<IExportService, ExportService>();
+            services.AddSingleton<ISkillInstallerService, SkillInstallerService>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
             services.AddHttpClient("CorvidaApi");
 

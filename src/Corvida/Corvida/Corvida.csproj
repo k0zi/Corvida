@@ -5,9 +5,13 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <Version>1.0.0</Version>
     </PropertyGroup>
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="Skills\**" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="12.0.3" />
@@ -32,4 +36,11 @@
     <ItemGroup>
       <ProjectReference Include="..\..\Corvida.Core\Corvida.Core.csproj" />
     </ItemGroup>
+
+    <!-- Builds a self-contained linux-x64 .deb package after every Release publish. -->
+    <Target Name="CreateDebPackage" AfterTargets="Publish"
+            Condition="'$(Configuration)'=='Release' AND '$(SkipDebPackaging)'!='true' AND $([MSBuild]::IsOSPlatform('Linux'))">
+        <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c Release -r linux-x64 --self-contained true -p:SkipDebPackaging=true -o &quot;$(MSBuildProjectDirectory)/bin/Release/deb-staging&quot;" />
+        <Exec Command="bash &quot;$(MSBuildProjectDirectory)/Packaging/build-deb.sh&quot; &quot;$(MSBuildProjectDirectory)/bin/Release/deb-staging&quot; $(Version) &quot;$(MSBuildProjectDirectory)/bin/Release/deb&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+    </Target>
 </Project>
