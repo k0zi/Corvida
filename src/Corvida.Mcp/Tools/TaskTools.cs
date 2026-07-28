@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Text.Json;
 using Corvida.Models;
 using Corvida.Services;
@@ -71,8 +72,8 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
             Description = description,
             Priority = priority,
             Created = DateTime.UtcNow,
-            PlannedStart = plannedStart is not null ? DateTime.Parse(plannedStart) : null,
-            PlannedEnd   = plannedEnd   is not null ? DateTime.Parse(plannedEnd)   : null,
+            PlannedStart = plannedStart is not null ? ParseUtc(plannedStart) : null,
+            PlannedEnd   = plannedEnd   is not null ? ParseUtc(plannedEnd)   : null,
         };
 
         await tasks.SaveTaskAsync(task);
@@ -100,8 +101,8 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         if (title        is not null) task.Title        = title;
         if (description  is not null) task.Description  = description;
         if (priority     is not null) task.Priority     = priority;
-        if (plannedStart is not null) task.PlannedStart = DateTime.Parse(plannedStart);
-        if (plannedEnd   is not null) task.PlannedEnd   = DateTime.Parse(plannedEnd);
+        if (plannedStart is not null) task.PlannedStart = ParseUtc(plannedStart);
+        if (plannedEnd   is not null) task.PlannedEnd   = ParseUtc(plannedEnd);
 
         await tasks.SaveTaskAsync(task);
         return JsonSerializer.Serialize(task, JsonOpts);
@@ -162,4 +163,7 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         await boards.SaveBoardAsync(board);
         return JsonSerializer.Serialize(new { taskId, from = sourceGroup.Id, to = toGroupId }, JsonOpts);
     }
+
+    private static DateTime ParseUtc(string value) => DateTime.Parse(
+        value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
 }
