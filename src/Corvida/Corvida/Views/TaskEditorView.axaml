@@ -49,7 +49,12 @@
                                   MinWidth="160">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="x:String">
-                                    <TextBlock Text="{Binding Converter={x:Static conv:PriorityToEmojiConverter.Instance}}"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <materialIcons:MaterialIcon Kind="{Binding Converter={x:Static conv:PriorityToIconConverter.Instance}}"
+                                                                     Foreground="{Binding Converter={x:Static conv:PriorityToBrushConverter.Instance}}"
+                                                                     Width="14" Height="14"/>
+                                        <TextBlock Text="{Binding}"/>
+                                    </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
