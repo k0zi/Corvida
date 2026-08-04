@@ -63,7 +63,7 @@
                                 </Grid>
 
                                 <!-- Task list -->
-                                <Button DockPanel.Dock="Bottom" Command="{Binding AddTaskCommand}"
+                                <Button DockPanel.Dock="Top" Command="{Binding AddTaskCommand}"
                                         HorizontalAlignment="Stretch" Margin="0 8 0 0" Classes="Basic"
                                         IsVisible="{Binding !IsReadOnly}">
                                     <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
