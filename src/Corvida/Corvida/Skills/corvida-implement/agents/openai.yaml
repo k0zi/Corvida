@@ -1,0 +1,3 @@
+interface:
+  display_name: "Corvida Implement"
+  short_description: "Work through a Corvida Kanban board's To Do tasks"

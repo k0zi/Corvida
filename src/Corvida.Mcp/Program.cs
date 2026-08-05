@@ -20,6 +20,10 @@ builder.Services.AddSingleton<TaskService>();
 builder.Services.AddSingleton<HttpTaskService>();
 builder.Services.AddSingleton<ITaskService, StorageAwareTaskService>();
 
+builder.Services.AddSingleton<AgentService>();
+builder.Services.AddSingleton<HttpAgentService>();
+builder.Services.AddSingleton<IAgentService, StorageAwareAgentService>();
+
 builder.Services.AddHttpClient("CorvidaApi");
 builder.Services.AddHostedService<SettingsLoader>();
 

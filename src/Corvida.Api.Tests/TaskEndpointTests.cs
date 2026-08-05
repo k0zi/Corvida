@@ -166,6 +166,37 @@ public class TaskEndpointTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpsertTask_PersistsAssignedAgentId()
+    {
+        var agent = await PostAgent("Assignee");
+        var task = MakeTask("assign-task-1");
+        task.AssignedAgentId = agent.Id;
+
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+
+        var response = await _client.GetAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}");
+        var returned = await response.Content.ReadFromJsonAsync<KanbanTask>(JsonOpts);
+        Assert.NotNull(returned);
+        Assert.Equal(agent.Id, returned.AssignedAgentId);
+    }
+
+    [Fact]
+    public async Task UpsertTask_UnassignsAgent_WhenAssignedAgentIdSetToNull()
+    {
+        var agent = await PostAgent("Assignee");
+        var task = MakeTask("unassign-task-1");
+        task.AssignedAgentId = agent.Id;
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+
+        task.AssignedAgentId = null;
+        var response = await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+
+        var returned = await response.Content.ReadFromJsonAsync<KanbanTask>(JsonOpts);
+        Assert.NotNull(returned);
+        Assert.Null(returned.AssignedAgentId);
+    }
+
+    [Fact]
     public async Task GetTask_StillWorks_WhenBoardIsArchived()
     {
         var task = MakeTask("read-archived-task");
@@ -187,4 +218,12 @@ public class TaskEndpointTests : IAsyncLifetime
         Priority = "High",
         Created = new DateTime(2026, 6, 10, 12, 0, 0, DateTimeKind.Utc),
     };
+
+    private async Task<Agent> PostAgent(string name)
+    {
+        var response = await _client.PostAsJsonAsync("/api/agents", new { Name = name });
+        response.EnsureSuccessStatusCode();
+        var agent = await response.Content.ReadFromJsonAsync<Agent>(JsonOpts);
+        return agent!;
+    }
 }

@@ -6,6 +6,8 @@ public class BoardEntity
     public string Name { get; set; } = string.Empty;
     public string GroupsJson { get; set; } = "[]";
     public bool IsArchived { get; set; }
+    public string AgentIdsJson { get; set; } = "[]";
+    public string CellOrdersJson { get; set; } = "[]";
 
     public ICollection<TaskEntity> Tasks { get; set; } = [];
 }

@@ -7,7 +7,7 @@ using ModelContextProtocol.Server;
 namespace Corvida.Mcp.Tools;
 
 [McpServerToolType]
-public sealed class BoardTools(IBoardService boards, ITaskService tasks)
+public sealed class BoardTools(IBoardService boards, ITaskService tasks, IAgentService agents)
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
@@ -126,7 +126,91 @@ public sealed class BoardTools(IBoardService boards, ITaskService tasks)
                 await tasks.DeleteTaskAsync(boardId, taskId);
 
         board!.Groups.Remove(group);
+        board.CellOrders.RemoveAll(c => c.GroupId == groupId);
         await boards.SaveBoardAsync(board);
         return JsonSerializer.Serialize(new { deleted = groupId, tasksDeleted = deleteTasks ? group.TaskIds.Count : 0 }, JsonOpts);
+    }
+
+    [McpServerTool, Description(
+        "Add a agent as a member of a board, making them a swimlane row. The agent must already exist.")]
+    public async Task<string> add_board_member(
+        [Description("The board ID")] string boardId,
+        [Description("The agent ID to add as a board member")] string agentId,
+        CancellationToken cancellationToken)
+    {
+        var all = await boards.GetBoardsAsync();
+        var board = all.FirstOrDefault(b => b.Id == boardId);
+        if (board is null) return """{"error":"Board not found"}""";
+
+        if (await agents.GetAgentAsync(agentId) is null) return """{"error":"Agent not found"}""";
+
+        if (!board.AgentIds.Contains(agentId))
+            board.AgentIds.Add(agentId);
+
+        await boards.SaveBoardAsync(board);
+        return JsonSerializer.Serialize(new { boardId, members = board.AgentIds }, JsonOpts);
+    }
+
+    [McpServerTool, Description(
+        "Remove a agent from a board's membership. Tasks previously assigned to that agent on this " +
+        "board fall back to Unassigned; the agent itself is not deleted.")]
+    public async Task<string> remove_board_member(
+        [Description("The board ID")] string boardId,
+        [Description("The agent ID to remove from board membership")] string agentId,
+        CancellationToken cancellationToken)
+    {
+        var all = await boards.GetBoardsAsync();
+        var board = all.FirstOrDefault(b => b.Id == boardId);
+        if (board is null) return """{"error":"Board not found"}""";
+
+        board.AgentIds.Remove(agentId);
+        ScrubAgentFromBoard(board, agentId);
+
+        await boards.SaveBoardAsync(board);
+        return JsonSerializer.Serialize(new { boardId, members = board.AgentIds }, JsonOpts);
+    }
+
+    [McpServerTool, Description(
+        "Reorder a board's member list (swimlane row order). " +
+        "orderedAgentIds must contain exactly the board's current members, in the desired order.")]
+    public async Task<string> reorder_board_members(
+        [Description("The board ID")] string boardId,
+        [Description("The full member list in the desired order — must be a permutation of the board's current members")]
+        List<string> orderedAgentIds,
+        CancellationToken cancellationToken)
+    {
+        var all = await boards.GetBoardsAsync();
+        var board = all.FirstOrDefault(b => b.Id == boardId);
+        if (board is null) return """{"error":"Board not found"}""";
+
+        if (orderedAgentIds.Count != board.AgentIds.Count ||
+            !orderedAgentIds.OrderBy(x => x).SequenceEqual(board.AgentIds.OrderBy(x => x)))
+            return """{"error":"orderedAgentIds must be a permutation of the board's current members"}""";
+
+        board.AgentIds = orderedAgentIds;
+        await boards.SaveBoardAsync(board);
+        return JsonSerializer.Serialize(new { boardId, members = board.AgentIds }, JsonOpts);
+    }
+
+    // Removing a agent's board membership (or deleting them globally) leaves their assigned
+    // cell-order entries orphaned; merge each into that group's Unassigned entry so tasks stay
+    // visible instead of vanishing from the swimlane grid.
+    private static void ScrubAgentFromBoard(Board board, string agentId)
+    {
+        var orphaned = board.CellOrders.Where(c => c.AgentId == agentId).ToList();
+        foreach (var cell in orphaned)
+        {
+            var unassigned = board.CellOrders.FirstOrDefault(c => c.GroupId == cell.GroupId && c.AgentId is null);
+            if (unassigned is null)
+            {
+                unassigned = new SwimlaneCellOrder { GroupId = cell.GroupId, AgentId = null };
+                board.CellOrders.Add(unassigned);
+            }
+            foreach (var taskId in cell.TaskIds)
+                if (!unassigned.TaskIds.Contains(taskId))
+                    unassigned.TaskIds.Add(taskId);
+
+            board.CellOrders.Remove(cell);
+        }
     }
 }

@@ -43,6 +43,7 @@ public static class TaskEndpoints
         entity.Created = task.Created;
         entity.PlannedStart = task.PlannedStart;
         entity.PlannedEnd = task.PlannedEnd;
+        entity.AssignedAgentId = task.AssignedAgentId;
 
         await db.SaveChangesAsync();
 
@@ -82,5 +83,6 @@ public static class TaskEndpoints
         Priority = e.Priority,
         PlannedStart = e.PlannedStart,
         PlannedEnd = e.PlannedEnd,
+        AssignedAgentId = e.AssignedAgentId,
     };
 }

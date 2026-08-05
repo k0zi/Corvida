@@ -84,6 +84,73 @@ public class MigrationTests(PostgresContainerFixture db)
     }
 
     [Fact]
+    public async Task AfterMigration_CanPersistAndQueryAgentEntity()
+    {
+        await using var ctx = CreateContext();
+        await ctx.Database.MigrateAsync();
+
+        var agent = new AgentEntity { Id = "mig-agent-1", Name = "Test Agent" };
+        ctx.Agents.Add(agent);
+        await ctx.SaveChangesAsync();
+
+        await using var readCtx = CreateContext();
+        var saved = await readCtx.Agents.AsNoTracking().FirstOrDefaultAsync(a => a.Id == "mig-agent-1");
+
+        Assert.NotNull(saved);
+        Assert.Equal("Test Agent", saved.Name);
+        Assert.Equal("#4C6EF5", saved.Color);
+    }
+
+    [Fact]
+    public async Task AfterMigration_BoardEntity_HasAgentIdsAndCellOrdersJsonDefaults()
+    {
+        await using var ctx = CreateContext();
+        await ctx.Database.MigrateAsync();
+
+        var board = new BoardEntity { Id = "mig-board-4", Name = "Board With Defaults" };
+        ctx.Boards.Add(board);
+        await ctx.SaveChangesAsync();
+
+        await using var readCtx = CreateContext();
+        var saved = await readCtx.Boards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == "mig-board-4");
+
+        Assert.NotNull(saved);
+        Assert.Equal("[]", saved.AgentIdsJson);
+        Assert.Equal("[]", saved.CellOrdersJson);
+    }
+
+    [Fact]
+    public async Task AfterMigration_DeleteAgent_SetsNullOnAssignedTasks()
+    {
+        await using var ctx = CreateContext();
+        await ctx.Database.MigrateAsync();
+
+        var board = new BoardEntity { Id = "mig-board-5", Name = "Board For Assignment" };
+        var agent = new AgentEntity { Id = "mig-agent-2", Name = "Assignee" };
+        ctx.Boards.Add(board);
+        ctx.Agents.Add(agent);
+        ctx.Tasks.Add(new TaskEntity
+        {
+            Id = "mig-task-3",
+            BoardId = "mig-board-5",
+            GroupId = "grp-1",
+            Title = "Assigned Task",
+            Created = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            AssignedAgentId = "mig-agent-2",
+        });
+        await ctx.SaveChangesAsync();
+
+        ctx.Agents.Remove(agent);
+        await ctx.SaveChangesAsync();
+
+        await using var readCtx = CreateContext();
+        var task = await readCtx.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == "mig-task-3");
+
+        Assert.NotNull(task);
+        Assert.Null(task.AssignedAgentId);
+    }
+
+    [Fact]
     public async Task AfterMigration_DeleteBoard_CascadesToTasks()
     {
         await using var ctx = CreateContext();

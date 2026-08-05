@@ -1,0 +1,77 @@
+<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+                   xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+                   xmlns:models="using:Corvida.Models"
+                   xmlns:conv="using:Corvida.Converters"
+                   xmlns:avc="using:Avalonia.Data.Converters"
+                   x:Class="Corvida.Views.Dialogs.BoardMembersDialog"
+                   Title="Manage Board Members"
+                   Width="520" Height="420"
+                   CanResize="False"
+                   WindowStartupLocation="CenterOwner"
+                   ShowInTaskbar="False">
+
+    <DockPanel Margin="16" LastChildFill="True">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Spacing="8" Margin="0 12 0 0">
+            <Button Content="Cancel" Click="Cancel_Click" Classes="Basic" />
+            <Button Content="OK" Click="Ok_Click" Classes="Flat" />
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,Auto,*">
+            <sukiUi:GlassCard Width="200" Padding="12">
+                <StackPanel Grid.Column="0" Spacing="6">
+                    <TextBlock Text="Available Agents" FontWeight="Medium" />
+                    <ListBox x:Name="AvailableList" Height="300">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:Agent">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="20" Height="20" CornerRadius="10"
+                                            Background="{Binding Color, Converter={x:Static conv:HexColorToBrushConverter.Instance}}" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </sukiUi:GlassCard>
+
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="8 0">
+                <Button Click="Add_Click" Classes="Basic" ToolTip.Tip="Add as member">
+                    <materialIcons:MaterialIcon Kind="ArrowRight" Width="16" Height="16" />
+                </Button>
+                <Button Click="Remove_Click" Classes="Basic" ToolTip.Tip="Remove membership">
+                    <materialIcons:MaterialIcon Kind="ArrowLeft" Width="16" Height="16" />
+                </Button>
+            </StackPanel>
+            
+            <sukiUi:GlassCard Grid.Column="2" Width="200" Padding="12">
+            <StackPanel Grid.Column="2" Spacing="6">
+                <TextBlock Text="Board Members (and order)" FontWeight="Medium" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <ListBox Grid.Column="0" x:Name="MembersList" Height="300">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:Agent">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="20" Height="20" CornerRadius="10"
+                                            Background="{Binding Color, Converter={x:Static conv:HexColorToBrushConverter.Instance}}" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="4 0 0 0">
+                        <Button Click="MoveUp_Click" Classes="Basic" ToolTip.Tip="Move up">
+                            <materialIcons:MaterialIcon Kind="ArrowUp" Width="16" Height="16" />
+                        </Button>
+                        <Button Click="MoveDown_Click" Classes="Basic" ToolTip.Tip="Move down">
+                            <materialIcons:MaterialIcon Kind="ArrowDown" Width="16" Height="16" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+                </sukiUi:GlassCard>
+        </Grid>
+    </DockPanel>
+</sukiUi:SukiWindow>

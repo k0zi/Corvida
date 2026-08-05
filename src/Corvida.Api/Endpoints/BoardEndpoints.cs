@@ -58,6 +58,8 @@ public static class BoardEndpoints
             Id = boardId,
             Name = req.Name,
             GroupsJson = JsonSerializer.Serialize(groups, JsonOpts),
+            AgentIdsJson = "[]",
+            CellOrdersJson = "[]",
         };
 
         db.Boards.Add(entity);
@@ -76,6 +78,8 @@ public static class BoardEndpoints
 
         entity.Name = board.Name;
         entity.GroupsJson = JsonSerializer.Serialize(board.Groups, JsonOpts);
+        entity.AgentIdsJson = JsonSerializer.Serialize(board.AgentIds, JsonOpts);
+        entity.CellOrdersJson = JsonSerializer.Serialize(board.CellOrders, JsonOpts);
 
         await db.SaveChangesAsync();
 
@@ -128,6 +132,8 @@ public static class BoardEndpoints
         Name = e.Name,
         Groups = JsonSerializer.Deserialize<List<KanbanGroup>>(e.GroupsJson, JsonOpts) ?? [],
         IsArchived = e.IsArchived,
+        AgentIds = JsonSerializer.Deserialize<List<string>>(e.AgentIdsJson, JsonOpts) ?? [],
+        CellOrders = JsonSerializer.Deserialize<List<SwimlaneCellOrder>>(e.CellOrdersJson, JsonOpts) ?? [],
     };
 }
 

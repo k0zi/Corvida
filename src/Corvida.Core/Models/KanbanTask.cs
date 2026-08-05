@@ -13,4 +13,5 @@ public class KanbanTask
     public string Priority { get; set; } = "Medium";
     public DateTime? PlannedStart { get; set; }
     public DateTime? PlannedEnd { get; set; }
+    public string? AssignedAgentId { get; set; }
 }

@@ -1,17 +1,16 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Corvida.Services;
 
 public class SkillInstallerService : ISkillInstallerService
 {
-    private static readonly string[] SkillNames = ["corvida-implement", "corvida-plan"];
-
     public bool IsInstalled(string targetRoot)
     {
         var root = ExpandPath(targetRoot);
-        foreach (var skillName in SkillNames)
+        foreach (var skillName in SkillNames())
         {
             if (!File.Exists(Path.Combine(root, skillName, "SKILL.md")))
                 return false;
@@ -22,27 +21,51 @@ public class SkillInstallerService : ISkillInstallerService
     public async Task InstallAsync(string targetRoot)
     {
         var root = ExpandPath(targetRoot);
-        foreach (var skillName in SkillNames)
+        foreach (var skillName in SkillNames())
         {
-            var sourceFile = Path.Combine(AppContext.BaseDirectory, "Skills", skillName, "SKILL.md");
+            var sourceDir = Path.Combine(SkillPaths.UserSkillsRoot, skillName);
             var destDir = Path.Combine(root, skillName);
             Directory.CreateDirectory(destDir);
-            await using var source = File.OpenRead(sourceFile);
-            await using var dest = File.Create(Path.Combine(destDir, "SKILL.md"));
-            await source.CopyToAsync(dest);
+
+            await CopyFileAsync(Path.Combine(sourceDir, "SKILL.md"), Path.Combine(destDir, "SKILL.md"));
+
+            var sourceYaml = Path.Combine(sourceDir, "agents", "openai.yaml");
+            if (File.Exists(sourceYaml))
+            {
+                var destAgentsDir = Path.Combine(destDir, "agents");
+                Directory.CreateDirectory(destAgentsDir);
+                await CopyFileAsync(sourceYaml, Path.Combine(destAgentsDir, "openai.yaml"));
+            }
         }
     }
 
     public Task UninstallAsync(string targetRoot)
     {
         var root = ExpandPath(targetRoot);
-        foreach (var skillName in SkillNames)
+        foreach (var skillName in SkillNames())
         {
             var destDir = Path.Combine(root, skillName);
             if (Directory.Exists(destDir))
                 Directory.Delete(destDir, recursive: true);
         }
         return Task.CompletedTask;
+    }
+
+    private static string[] SkillNames()
+    {
+        SkillPaths.EnsureSeeded();
+        return Directory.GetDirectories(SkillPaths.UserSkillsRoot)
+            .Select(Path.GetFileName)
+            .Where(name => name is not null)
+            .Select(name => name!)
+            .ToArray();
+    }
+
+    private static async Task CopyFileAsync(string sourceFile, string destFile)
+    {
+        await using var source = File.OpenRead(sourceFile);
+        await using var dest = File.Create(destFile);
+        await source.CopyToAsync(dest);
     }
 
     private static string ExpandPath(string path)

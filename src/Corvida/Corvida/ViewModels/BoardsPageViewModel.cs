@@ -11,6 +11,7 @@ public partial class BoardsPageViewModel : PageBase
 {
     private readonly IBoardService _boardService;
     private readonly ITaskService _taskService;
+    private readonly IAgentService _agentService;
     private readonly IDialogService _dialogService;
 
     private readonly Stack<ViewModelBase> _navStack = new();
@@ -23,10 +24,11 @@ public partial class BoardsPageViewModel : PageBase
     public override MaterialIconKind Icon => MaterialIconKind.ViewDashboard;
     public override int DisplayOrder => 0;
 
-    public BoardsPageViewModel(IBoardService boardService, ITaskService taskService, IDialogService dialogService)
+    public BoardsPageViewModel(IBoardService boardService, ITaskService taskService, IAgentService agentService, IDialogService dialogService)
     {
         _boardService = boardService;
         _taskService = taskService;
+        _agentService = agentService;
         _dialogService = dialogService;
 
         _listVm = new BoardsListViewModel(boardService, dialogService, NavigateToBoardEditor);
@@ -59,7 +61,7 @@ public partial class BoardsPageViewModel : PageBase
     public void NavigateToBoardEditor(Board board)
     {
         var editorVm = new BoardEditorViewModel(
-            board, _boardService, _taskService, _dialogService,
+            board, _boardService, _taskService, _agentService, _dialogService,
             onBack: GoBack,
             onEditTask: task => NavigateToTaskEditor(task, board));
 
@@ -70,7 +72,7 @@ public partial class BoardsPageViewModel : PageBase
     private void NavigateToTaskEditor(KanbanTask task, Board board)
     {
         var editorVm = new TaskEditorViewModel(
-            task, board.Name, _taskService,
+            task, board, _taskService, _agentService,
             onSaved: updated =>
             {
                 var stack = _navStack.ToArray();

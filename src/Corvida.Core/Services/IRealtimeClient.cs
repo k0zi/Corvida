@@ -13,4 +13,6 @@ public interface IRealtimeClient
     event Action<string>? BoardDeleted;
     event Action<string, KanbanTask>? TaskChanged;
     event Action<string, string>? TaskDeleted;
+    event Action<Agent>? AgentChanged;
+    event Action<string>? AgentDeleted;
 }

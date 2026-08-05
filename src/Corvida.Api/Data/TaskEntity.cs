@@ -11,6 +11,8 @@ public class TaskEntity
     public DateTime Created { get; set; } = DateTime.UtcNow;
     public DateTime? PlannedStart { get; set; }
     public DateTime? PlannedEnd { get; set; }
+    public string? AssignedAgentId { get; set; }
 
     public BoardEntity Board { get; set; } = null!;
+    public AgentEntity? AssignedAgent { get; set; }
 }

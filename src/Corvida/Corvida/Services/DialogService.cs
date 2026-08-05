@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Corvida.Models;
 using Corvida.Views.Dialogs;
 
 namespace Corvida.Services;
@@ -31,5 +32,12 @@ public class DialogService : IDialogService
         var dialog = new PickerDialog(title, options);
         await dialog.ShowDialog(GetMainWindow());
         return dialog.Selected;
+    }
+
+    public async Task<List<string>?> ShowBoardMembersDialogAsync(IReadOnlyList<Agent> allAgents, List<string> currentMemberIds)
+    {
+        var dialog = new BoardMembersDialog(allAgents, currentMemberIds);
+        await dialog.ShowDialog(GetMainWindow());
+        return dialog.Result;
     }
 }

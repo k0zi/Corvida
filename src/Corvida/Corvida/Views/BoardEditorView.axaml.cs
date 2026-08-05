@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -17,18 +18,18 @@ public partial class BoardEditorView : UserControl
     private static readonly DataFormat<KanbanTask> DragTaskFormat =
         DataFormat.CreateInProcessFormat<KanbanTask>("corvida-task");
     private KanbanTask? _draggedTask;
-    private GroupCardViewModel? _dragSourceGroup;
+    private SwimlaneCellViewModel? _dragSourceCell;
 
     public BoardEditorView() => InitializeComponent();
 
-    private void GroupCard_Loaded(object? sender, RoutedEventArgs e)
+    private void Cell_Loaded(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control ctrl) return;
-        ctrl.AddHandler(DragDrop.DragOverEvent, GroupCard_DragOver);
-        ctrl.AddHandler(DragDrop.DropEvent, GroupCard_Drop);
+        ctrl.AddHandler(DragDrop.DragOverEvent, Cell_DragOver);
+        ctrl.AddHandler(DragDrop.DropEvent, Cell_Drop);
     }
 
-    private void GroupCard_DragOver(object? sender, DragEventArgs e)
+    private void Cell_DragOver(object? sender, DragEventArgs e)
     {
         e.DragEffects = e.DataTransfer.Contains(DragTaskFormat)
             ? DragDropEffects.Move
@@ -36,14 +37,14 @@ public partial class BoardEditorView : UserControl
         e.Handled = true;
     }
 
-    private async void GroupCard_Drop(object? sender, DragEventArgs e)
+    private async void Cell_Drop(object? sender, DragEventArgs e)
     {
-        if (!e.DataTransfer.Contains(DragTaskFormat) || _draggedTask is null || _dragSourceGroup is null) return;
-        if (sender is not Control ctrl || ctrl.DataContext is not GroupCardViewModel targetGroup) return;
+        if (!e.DataTransfer.Contains(DragTaskFormat) || _draggedTask is null || _dragSourceCell is null) return;
+        if (sender is not Control ctrl || ctrl.DataContext is not SwimlaneCellViewModel targetCell) return;
         if (DataContext is not BoardEditorViewModel { IsReadOnly: false } vm) return;
 
-        var insertIndex = FindInsertIndex(e.GetPosition(ctrl), ctrl, targetGroup);
-        await vm.MoveTaskAsync(_draggedTask, _dragSourceGroup, targetGroup, insertIndex);
+        var insertIndex = FindInsertIndex(e.GetPosition(ctrl), ctrl, targetCell.Tasks);
+        await vm.MoveTaskAsync(_draggedTask, _dragSourceCell, targetCell, insertIndex);
         e.Handled = true;
     }
 
@@ -54,11 +55,11 @@ public partial class BoardEditorView : UserControl
         if (e.Source is Button || (e.Source as Control)?.FindAncestorOfType<Button>() is not null) return;
         if (sender is not Control ctrl || ctrl.DataContext is not KanbanTask task) return;
 
-        var sourceGroup = FindAncestorGroupViewModel(ctrl);
-        if (sourceGroup is null) return;
+        var sourceCell = FindAncestorCellViewModel(ctrl);
+        if (sourceCell is null) return;
 
         _draggedTask = task;
-        _dragSourceGroup = sourceGroup;
+        _dragSourceCell = sourceCell;
 
         var item = DataTransferItem.Create(DragTaskFormat, task);
         var data = new DataTransfer();
@@ -66,7 +67,7 @@ public partial class BoardEditorView : UserControl
         await DragDrop.DoDragDropAsync(e, data, DragDropEffects.Move);
 
         _draggedTask = null;
-        _dragSourceGroup = null;
+        _dragSourceCell = null;
     }
 
     private void TaskCard_DoubleTapped(object? sender, TappedEventArgs e)
@@ -74,36 +75,28 @@ public partial class BoardEditorView : UserControl
         if ((e.Source as Control)?.FindAncestorOfType<Button>() is not null) return;
         if (sender is not Control ctrl || ctrl.DataContext is not KanbanTask task) return;
 
-        var parent = ctrl.GetVisualParent();
-        while (parent is not null)
-        {
-            if (parent is Control c && c.DataContext is GroupCardViewModel gvm)
-            {
-                gvm.EditTaskCommand.Execute(task);
-                return;
-            }
-            parent = parent.GetVisualParent();
-        }
+        var cell = FindAncestorCellViewModel(ctrl);
+        cell?.EditTaskCommand.Execute(task);
     }
 
-    private static int FindInsertIndex(Point dropPositionInCard, Control card, GroupCardViewModel targetGroup)
+    private static int FindInsertIndex(Point dropPositionInCard, Control card, ObservableCollection<KanbanTask> targetTasks)
     {
-        if (targetGroup.Tasks.Count == 0) return 0;
+        if (targetTasks.Count == 0) return 0;
 
         var taskList = card.GetVisualDescendants()
             .OfType<ItemsControl>()
-            .FirstOrDefault(ic => ReferenceEquals(ic.ItemsSource, targetGroup.Tasks));
+            .FirstOrDefault(ic => ReferenceEquals(ic.ItemsSource, targetTasks));
 
-        if (taskList is null) return targetGroup.Tasks.Count;
+        if (taskList is null) return targetTasks.Count;
 
         var posInList = card.TranslatePoint(dropPositionInCard, taskList);
-        if (posInList is null) return targetGroup.Tasks.Count;
+        if (posInList is null) return targetTasks.Count;
 
         var itemsPresenter = taskList.GetVisualDescendants().OfType<ItemsPresenter>().FirstOrDefault();
         var panel = itemsPresenter?.GetVisualChildren().OfType<Panel>().FirstOrDefault()
                     ?? taskList.GetVisualDescendants().OfType<Panel>().FirstOrDefault();
 
-        if (panel is null) return targetGroup.Tasks.Count;
+        if (panel is null) return targetTasks.Count;
 
         var posInPanel = taskList.TranslatePoint(posInList.Value, panel) ?? posInList.Value;
 
@@ -114,16 +107,16 @@ public partial class BoardEditorView : UserControl
                 return i;
         }
 
-        return targetGroup.Tasks.Count;
+        return targetTasks.Count;
     }
 
-    private static GroupCardViewModel? FindAncestorGroupViewModel(Control? ctrl)
+    private static SwimlaneCellViewModel? FindAncestorCellViewModel(Control? ctrl)
     {
         var parent = ctrl?.GetVisualParent();
         while (parent is not null)
         {
-            if (parent is Control c && c.DataContext is GroupCardViewModel gvm)
-                return gvm;
+            if (parent is Control c && c.DataContext is SwimlaneCellViewModel cvm)
+                return cvm;
             parent = parent.GetVisualParent();
         }
         return null;

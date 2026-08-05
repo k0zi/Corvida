@@ -47,13 +47,20 @@ public partial class App : Application
             services.AddSingleton<HttpTaskService>();
             services.AddSingleton<ITaskService, StorageAwareTaskService>();
 
+            services.AddSingleton<AgentService>();
+            services.AddSingleton<HttpAgentService>();
+            services.AddSingleton<IAgentService, StorageAwareAgentService>();
+
             services.AddSingleton<IExportService, ExportService>();
             services.AddSingleton<ISkillInstallerService, SkillInstallerService>();
+            services.AddSingleton<ISkillService, SkillService>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
             services.AddHttpClient("CorvidaApi");
 
             // Pages
             services.AddTransient<PageBase, BoardsPageViewModel>();
+            services.AddTransient<PageBase, AgentsPageViewModel>();
+            services.AddTransient<PageBase, SkillsPageViewModel>();
             services.AddTransient<PageBase, ArchivedBoardsViewModel>();
             services.AddTransient<PageBase, SettingsViewModel>();
 
@@ -64,6 +71,7 @@ public partial class App : Application
 
             // Load settings before showing window
             Services.GetRequiredService<ISettingsService>().LoadAsync().GetAwaiter().GetResult();
+            SkillPaths.EnsureSeeded();
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
             var boardsPage = mainVm.Pages.OfType<BoardsPageViewModel>().First();
@@ -89,6 +97,10 @@ public partial class App : Application
                 Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new TaskChangedMessage(boardId, task)));
             realtime.TaskDeleted += (boardId, taskId) =>
                 Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new TaskDeletedMessage(boardId, taskId)));
+            realtime.AgentChanged += agent =>
+                Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new AgentChangedMessage(agent)));
+            realtime.AgentDeleted += agentId =>
+                Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new AgentDeletedMessage(agentId)));
             _ = realtime.StartAsync();
             desktop.ShutdownRequested += (_, _) => { _ = realtime.StopAsync(); };
 

@@ -7,6 +7,7 @@
              xmlns:vm="using:Corvida.ViewModels"
              xmlns:conv="using:Corvida.Converters"
              xmlns:controls="using:Corvida.Controls"
+             xmlns:models="using:Corvida.Models"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
              x:Class="Corvida.Views.TaskEditorView"
              x:DataType="vm:TaskEditorViewModel">
@@ -54,6 +55,23 @@
                                                                      Foreground="{Binding Converter={x:Static conv:PriorityToBrushConverter.Instance}}"
                                                                      Width="14" Height="14"/>
                                         <TextBlock Text="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Assigned Agent" FontWeight="Medium"/>
+                        <ComboBox ItemsSource="{Binding BoardMembers}"
+                                  SelectedItem="{Binding SelectedAssignedAgent}"
+                                  MinWidth="200">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:Agent">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Border Width="16" Height="16" CornerRadius="8"
+                                                Background="{Binding Color, Converter={x:Static conv:HexColorToBrushConverter.Instance}}"/>
+                                        <TextBlock Text="{Binding Name}"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>

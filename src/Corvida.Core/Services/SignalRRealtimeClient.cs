@@ -15,6 +15,8 @@ public class SignalRRealtimeClient(ISettingsService settings) : IRealtimeClient
     public event Action<string>? BoardDeleted;
     public event Action<string, KanbanTask>? TaskChanged;
     public event Action<string, string>? TaskDeleted;
+    public event Action<Agent>? AgentChanged;
+    public event Action<string>? AgentDeleted;
 
     public async Task StartAsync()
     {
@@ -30,6 +32,8 @@ public class SignalRRealtimeClient(ISettingsService settings) : IRealtimeClient
         connection.On<string>("BoardDeleted", boardId => BoardDeleted?.Invoke(boardId));
         connection.On<string, KanbanTask>("TaskChanged", (boardId, task) => TaskChanged?.Invoke(boardId, task));
         connection.On<string, string>("TaskDeleted", (boardId, taskId) => TaskDeleted?.Invoke(boardId, taskId));
+        connection.On<Agent>("AgentChanged", agent => AgentChanged?.Invoke(agent));
+        connection.On<string>("AgentDeleted", agentId => AgentDeleted?.Invoke(agentId));
 
         _connection = connection;
 

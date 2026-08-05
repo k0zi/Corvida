@@ -193,4 +193,37 @@ public class MarkdownSerializerTests
         var task = MarkdownSerializer.Parse(text);
         Assert.Equal(string.Empty, task.Description);
     }
+
+    [Fact]
+    public void Serialize_OmitsAssignedAgentIdWhenNull()
+    {
+        var task = MakeTask();
+        task.AssignedAgentId = null;
+        Assert.DoesNotContain("assignedAgentId:", MarkdownSerializer.Serialize(task));
+    }
+
+    [Fact]
+    public void Serialize_IncludesAssignedAgentIdWhenSet()
+    {
+        var task = MakeTask();
+        task.AssignedAgentId = "ada-agt-12345678";
+        Assert.Contains("assignedAgentId: ada-agt-12345678", MarkdownSerializer.Serialize(task));
+    }
+
+    [Fact]
+    public void Parse_RoundtripsAssignedAgentId()
+    {
+        var task = MakeTask();
+        task.AssignedAgentId = "ada-agt-12345678";
+        var parsed = MarkdownSerializer.Parse(MarkdownSerializer.Serialize(task));
+        Assert.Equal("ada-agt-12345678", parsed.AssignedAgentId);
+    }
+
+    [Fact]
+    public void Parse_AssignedAgentIdIsNull_WhenAbsentFromFrontmatter()
+    {
+        const string text = "---\nid: x\ntitle: t\ngroupId: g\nboardId: b\ncreated: 2025-01-01T00:00:00Z\npriority: Medium\n---\n";
+        var task = MarkdownSerializer.Parse(text);
+        Assert.Null(task.AssignedAgentId);
+    }
 }

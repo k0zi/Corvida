@@ -78,6 +78,7 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
 
         await tasks.SaveTaskAsync(task);
         group.TaskIds.Add(task.Id);
+        RelocateInCellOrders(board!, task.Id, groupId, null);
         await boards.SaveBoardAsync(board!);
 
         return JsonSerializer.Serialize(new { task.Id, task.Title, task.GroupId }, JsonOpts);
@@ -124,6 +125,12 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
             var changed = false;
             foreach (var group in board.Groups)
                 changed |= group.TaskIds.Remove(taskId);
+            foreach (var cell in board.CellOrders.ToList())
+            {
+                if (!cell.TaskIds.Remove(taskId)) continue;
+                changed = true;
+                if (cell.TaskIds.Count == 0) board.CellOrders.Remove(cell);
+            }
             if (changed) await boards.SaveBoardAsync(board);
         }
 
@@ -158,10 +165,57 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         {
             task.GroupId = toGroupId;
             await tasks.SaveTaskAsync(task);
+            RelocateInCellOrders(board, taskId, toGroupId, task.AssignedAgentId);
         }
 
         await boards.SaveBoardAsync(board);
         return JsonSerializer.Serialize(new { taskId, from = sourceGroup.Id, to = toGroupId }, JsonOpts);
+    }
+
+    [McpServerTool, Description(
+        "Assign a task to a agent (vertical placement in the board's swimlane grid), " +
+        "or pass agentId=null to unassign it back to the Unassigned row.")]
+    public async Task<string> assign_agent(
+        [Description("The board ID")] string boardId,
+        [Description("The task ID to assign")] string taskId,
+        [Description("The agent ID to assign the task to, or null to unassign")] string? agentId,
+        CancellationToken cancellationToken)
+    {
+        var allBoards = await boards.GetBoardsAsync();
+        var board = allBoards.FirstOrDefault(b => b.Id == boardId);
+        if (board is null) return """{"error":"Board not found"}""";
+
+        var task = await tasks.GetTaskAsync(boardId, taskId);
+        if (task is null) return """{"error":"Task not found"}""";
+
+        task.AssignedAgentId = agentId;
+        await tasks.SaveTaskAsync(task);
+
+        RelocateInCellOrders(board, taskId, task.GroupId, agentId);
+        await boards.SaveBoardAsync(board);
+
+        return JsonSerializer.Serialize(new { taskId, assignedAgentId = agentId }, JsonOpts);
+    }
+
+    // The single source of truth for "which cell (group, agent) a task visually sits in" is
+    // Board.CellOrders. Both a group move and a agent (re)assignment need to relocate the task's
+    // entry there — this keeps the two in sync instead of duplicating the removal/insertion logic.
+    private static void RelocateInCellOrders(Board board, string taskId, string groupId, string? agentId)
+    {
+        foreach (var cell in board.CellOrders.ToList())
+        {
+            if (cell.TaskIds.Remove(taskId) && cell.TaskIds.Count == 0)
+                board.CellOrders.Remove(cell);
+        }
+
+        var target = board.CellOrders.FirstOrDefault(c => c.GroupId == groupId && c.AgentId == agentId);
+        if (target is null)
+        {
+            target = new SwimlaneCellOrder { GroupId = groupId, AgentId = agentId };
+            board.CellOrders.Add(target);
+        }
+        if (!target.TaskIds.Contains(taskId))
+            target.TaskIds.Add(taskId);
     }
 
     private static DateTime ParseUtc(string value) => DateTime.Parse(

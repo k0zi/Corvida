@@ -36,6 +36,7 @@ await db.Database.CreateExecutionStrategy().ExecuteAsync(() => db.Database.Migra
 
 app.MapBoardEndpoints();
 app.MapTaskEndpoints();
+app.MapAgentEndpoints();
 app.MapHub<KanbanHub>("/hubs/kanban");
 
 app.Run();

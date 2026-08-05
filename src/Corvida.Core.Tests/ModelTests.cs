@@ -55,4 +55,61 @@ public class ModelTests
         var after = DateTime.UtcNow;
         Assert.True(task.Created >= before && task.Created <= after);
     }
+
+    [Fact]
+    public void KanbanTask_AssignedAgentId_DefaultsToNull()
+    {
+        Assert.Null(new KanbanTask().AssignedAgentId);
+    }
+
+    [Fact]
+    public void Board_AgentIds_IsEmptyListByDefault()
+    {
+        var board = new Board();
+        Assert.NotNull(board.AgentIds);
+        Assert.Empty(board.AgentIds);
+    }
+
+    [Fact]
+    public void Board_CellOrders_IsEmptyListByDefault()
+    {
+        var board = new Board();
+        Assert.NotNull(board.CellOrders);
+        Assert.Empty(board.CellOrders);
+    }
+
+    [Fact]
+    public void Board_TwoInstances_HaveIndependentAgentIdLists()
+    {
+        var a = new Board();
+        var b = new Board();
+        a.AgentIds.Add("agent-1");
+        Assert.Empty(b.AgentIds);
+    }
+
+    [Fact]
+    public void SwimlaneCellOrder_AgentId_DefaultsToNull()
+    {
+        Assert.Null(new SwimlaneCellOrder().AgentId);
+    }
+
+    [Fact]
+    public void SwimlaneCellOrder_TaskIds_IsEmptyListByDefault()
+    {
+        var cell = new SwimlaneCellOrder();
+        Assert.NotNull(cell.TaskIds);
+        Assert.Empty(cell.TaskIds);
+    }
+
+    [Fact]
+    public void Agent_Color_HasDefaultValue()
+    {
+        Assert.False(string.IsNullOrEmpty(new Agent().Color));
+    }
+
+    [Fact]
+    public void Agent_AvatarDataUri_DefaultsToNull()
+    {
+        Assert.Null(new Agent().AvatarDataUri);
+    }
 }

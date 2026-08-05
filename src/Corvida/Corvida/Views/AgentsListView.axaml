@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             xmlns:models="using:Corvida.Models"
+             xmlns:conv="using:Corvida.Converters"
+             xmlns:avc="using:Avalonia.Data.Converters"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.AgentsListView"
+             x:DataType="vm:AgentsListViewModel">
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0 0 0 16">
+            <TextBlock Text="Agents" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Button Command="{Binding AddAgentCommand}" Classes="Flat" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="Plus" Width="16" Height="16"/>
+                    <TextBlock Text="New Agent"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Agents}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:Agent">
+                        <sukiUi:GlassCard Margin="0 0 0 10" Padding="16" DoubleTapped="AgentCard_DoubleTapped">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20"
+                                        Background="{Binding Color, Converter={x:Static conv:HexColorToBrushConverter.Instance}}"
+                                        Margin="0 0 12 0">
+                                    <Image Source="{Binding AvatarDataUri, Converter={x:Static conv:Base64ToBitmapConverter.Instance}}"
+                                           Stretch="UniformToFill"
+                                           IsVisible="{Binding AvatarDataUri, Converter={x:Static avc:ObjectConverters.IsNotNull}}"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Medium"/>
+                                    <TextBlock Text="{Binding Personality}" FontSize="12" Opacity="0.6"
+                                               TextTrimming="CharacterEllipsis" MaxLines="1"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:AgentsListViewModel)DataContext).EditAgentCommand}"
+                                            CommandParameter="{Binding}"
+                                            Classes="Basic">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <materialIcons:MaterialIcon Kind="Pencil" Width="16" Height="16"/>
+                                            <TextBlock Text="Edit"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:AgentsListViewModel)DataContext).DeleteAgentCommand}"
+                                            CommandParameter="{Binding}"
+                                            Classes="Basic Danger">
+                                        <materialIcons:MaterialIcon Kind="Delete" Width="16" Height="16"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </sukiUi:GlassCard>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

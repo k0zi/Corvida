@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<BoardEntity> Boards => Set<BoardEntity>();
     public DbSet<TaskEntity> Tasks => Set<TaskEntity>();
+    public DbSet<AgentEntity> Agents => Set<AgentEntity>();
 
     // Npgsql refuses to write DateTime.Kind=Unspecified into "timestamp with time zone" columns.
     // Clients (desktop app, MCP server) are expected to send UTC, but this normalizes any
@@ -32,6 +33,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasColumnType("jsonb")
                 .IsRequired()
                 .HasDefaultValue("[]");
+            b.Property(e => e.AgentIdsJson)
+                .HasColumnType("jsonb")
+                .IsRequired()
+                .HasDefaultValue("[]");
+            b.Property(e => e.CellOrdersJson)
+                .HasColumnType("jsonb")
+                .IsRequired()
+                .HasDefaultValue("[]");
+        });
+
+        model.Entity<AgentEntity>(a =>
+        {
+            a.HasKey(e => e.Id);
+            a.Property(e => e.Id).HasColumnType("text");
+            a.Property(e => e.Name).HasColumnType("text").IsRequired();
+            a.Property(e => e.Personality).HasColumnType("text").IsRequired().HasDefaultValue("");
+            a.Property(e => e.Color).HasColumnType("text").IsRequired().HasDefaultValue("#4C6EF5");
+            a.Property(e => e.AvatarDataUri).HasColumnType("text");
         });
 
         model.Entity<TaskEntity>(t =>
@@ -46,11 +65,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             t.Property(e => e.Created).HasColumnType("timestamptz").IsRequired().HasConversion(UtcDateTimeConverter);
             t.Property(e => e.PlannedStart).HasColumnType("timestamptz").HasConversion(UtcNullableDateTimeConverter);
             t.Property(e => e.PlannedEnd).HasColumnType("timestamptz").HasConversion(UtcNullableDateTimeConverter);
+            t.Property(e => e.AssignedAgentId).HasColumnType("text");
 
             t.HasOne(e => e.Board)
                 .WithMany(b => b.Tasks)
                 .HasForeignKey(e => e.BoardId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            t.HasOne(e => e.AssignedAgent)
+                .WithMany(a => a.AssignedTasks)
+                .HasForeignKey(e => e.AssignedAgentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

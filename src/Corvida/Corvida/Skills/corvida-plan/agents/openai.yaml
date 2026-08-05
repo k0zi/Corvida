@@ -1,0 +1,3 @@
+interface:
+  display_name: "Corvida Plan"
+  short_description: "Break down a task or feature request into a Corvida Kanban plan"

@@ -44,7 +44,7 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Installed-Size: $INSTALLED_SIZE
-Maintainer: David Kozma <k0zi@outlook.com>
+Maintainer: David Kozma
 Homepage: https://github.com/k0zi/Corvida
 Description: Kanban board manager
  Corvida is a cross-platform Kanban board manager with support for local

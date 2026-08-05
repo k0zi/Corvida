@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             xmlns:conv="using:Corvida.Converters"
+             xmlns:controls="using:Corvida.Controls"
+             xmlns:avc="using:Avalonia.Data.Converters"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.AgentEditorView"
+             x:DataType="vm:AgentEditorViewModel">
+
+    <DockPanel Margin="16">
+        <!-- Header -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0 0 0 20">
+            <Button Grid.Column="0" Command="{Binding GoBackCommand}" Classes="Basic" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="ArrowLeft" Width="16" Height="16"/>
+                    <TextBlock Text="Back"/>
+                </StackPanel>
+            </Button>
+            <TextBlock Grid.Column="1" Text="Edit Agent" FontSize="22" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="Flat" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16"/>
+                    <TextBlock Text="Save"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Form -->
+        <ScrollViewer>
+            <sukiUi:GlassCard Margin="0" Padding="20" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="Auto,16,*">
+                        <StackPanel Grid.Column="0" Spacing="6" HorizontalAlignment="Center">
+                            <TextBlock Text="Avatar" FontWeight="Medium"/>
+                            <Border Width="72" Height="72" CornerRadius="36"
+                                    Background="{Binding Color, Converter={x:Static conv:HexColorToBrushConverter.Instance}}">
+                                <Image Source="{Binding AvatarDataUri, Converter={x:Static conv:Base64ToBitmapConverter.Instance}}"
+                                       Stretch="UniformToFill"
+                                       IsVisible="{Binding AvatarDataUri, Converter={x:Static avc:ObjectConverters.IsNotNull}}"/>
+                            </Border>
+                            <Button Content="Choose Avatar…" Click="ChooseAvatar_Click" Classes="Basic" HorizontalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Spacing="16">
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Name" FontWeight="Medium"/>
+                                <TextBox Text="{Binding Name}" PlaceholderText="Agent name"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Color" FontWeight="Medium"/>
+                                <ItemsControl ItemsSource="{Binding ColorPalette}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Button Command="{Binding $parent[ItemsControl].((vm:AgentEditorViewModel)DataContext).SelectColorCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="{Binding Converter={x:Static conv:HexColorToBrushConverter.Instance}}"
+                                                    Width="28" Height="28" Margin="4" Padding="0"
+                                                    CornerRadius="14"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Personality" FontWeight="Medium"/>
+                        <controls:MarkdownEditor Text="{Binding Personality}" MinHeight="250"/>
+                    </StackPanel>
+                </StackPanel>
+            </sukiUi:GlassCard>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

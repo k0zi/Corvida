@@ -56,6 +56,7 @@ public static class MarkdownSerializer
                                     DateTimeStyles.RoundtripKind, out var pe))
                                 task.PlannedEnd = pe;
                             break;
+                        case "assignedAgentId": task.AssignedAgentId = value; break;
                     }
                 }
             }
@@ -83,6 +84,8 @@ public static class MarkdownSerializer
             sb.AppendLine($"plannedStart: {task.PlannedStart.Value:O}");
         if (task.PlannedEnd.HasValue)
             sb.AppendLine($"plannedEnd: {task.PlannedEnd.Value:O}");
+        if (task.AssignedAgentId is not null)
+            sb.AppendLine($"assignedAgentId: {task.AssignedAgentId}");
         sb.AppendLine("---");
         sb.AppendLine();
         sb.Append(task.Description);

@@ -22,10 +22,51 @@ namespace Corvida.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Corvida.Api.Data.AgentEntity", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AvatarDataUri")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("#4C6EF5");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Personality")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Agents");
+                });
+
             modelBuilder.Entity("Corvida.Api.Data.BoardEntity", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
+
+                    b.Property<string>("AgentIdsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
+
+                    b.Property<string>("CellOrdersJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
 
                     b.Property<string>("GroupsJson")
                         .IsRequired()
@@ -48,6 +89,9 @@ namespace Corvida.Api.Migrations
             modelBuilder.Entity("Corvida.Api.Data.TaskEntity", b =>
                 {
                     b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AssignedAgentId")
                         .HasColumnType("text");
 
                     b.Property<string>("BoardId")
@@ -85,6 +129,8 @@ namespace Corvida.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignedAgentId");
+
                     b.HasIndex("BoardId");
 
                     b.ToTable("Tasks");
@@ -92,13 +138,25 @@ namespace Corvida.Api.Migrations
 
             modelBuilder.Entity("Corvida.Api.Data.TaskEntity", b =>
                 {
+                    b.HasOne("Corvida.Api.Data.AgentEntity", "AssignedAgent")
+                        .WithMany("AssignedTasks")
+                        .HasForeignKey("AssignedAgentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Corvida.Api.Data.BoardEntity", "Board")
                         .WithMany("Tasks")
                         .HasForeignKey("BoardId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("AssignedAgent");
+
                     b.Navigation("Board");
+                });
+
+            modelBuilder.Entity("Corvida.Api.Data.AgentEntity", b =>
+                {
+                    b.Navigation("AssignedTasks");
                 });
 
             modelBuilder.Entity("Corvida.Api.Data.BoardEntity", b =>

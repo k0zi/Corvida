@@ -9,6 +9,8 @@ public interface IKanbanHubClient
     Task BoardDeleted(string boardId);
     Task TaskChanged(string boardId, KanbanTask task);
     Task TaskDeleted(string boardId, string taskId);
+    Task AgentChanged(Agent agent);
+    Task AgentDeleted(string agentId);
 }
 
 public class KanbanHub : Hub<IKanbanHubClient>;
