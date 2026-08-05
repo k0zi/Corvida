@@ -33,13 +33,16 @@ Corvida is a Kanban board manager built around a shared core: a desktop client, 
 
 ## Features
 
-- Create and manage multiple boards
+- Create and manage multiple boards, with archive/restore for finished ones
 - Organize tasks into customizable columns (e.g. To-Do, In Progress, Done)
 - Write task descriptions in Markdown
-- Task priorities and planned start/end dates
+- Task priorities, planned start/end dates, and assignment to agents
+- **Agents** — reusable board members (human or AI) with a name, color/avatar, and a Markdown "personality", assignable across any board
+- **Skills** — create, edit, and install Claude-Code-style skills (`SKILL.md`) into Claude Code, OpenCode, or Hermes directly from the app
+- Live updates across open clients via SignalR when using the REST API
 - Light and dark theme support
 - Store data locally as files, or centrally through the REST API
-- Manage boards and tasks from an LLM via the bundled MCP server
+- Manage boards, tasks, and agents from an LLM via the bundled MCP server
 
 ## Architecture
 
@@ -104,7 +107,7 @@ dotnet run --project Corvida.AppHost/Corvida.AppHost.csproj
 
 ### MCP Server
 
-`Corvida.Mcp` exposes 13 tools (list/create/update/delete boards, groups, and tasks) over stdio via the `ModelContextProtocol` SDK.
+`Corvida.Mcp` exposes 22 tools (list/create/update/delete boards, groups, board members, tasks, and agents) over stdio via the `ModelContextProtocol` SDK.
 
 **Claude Code** — register it globally so it's available in every project:
 
