@@ -36,6 +36,7 @@ public static class AgentMarkdownSerializer
                     {
                         case "id": agent.Id = value; break;
                         case "name": agent.Name = value; break;
+                        case "description": agent.Description = value; break;
                         case "color": agent.Color = value; break;
                         case "avatar": agent.AvatarDataUri = value; break;
                     }
@@ -57,6 +58,8 @@ public static class AgentMarkdownSerializer
         sb.AppendLine("---");
         sb.AppendLine($"id: {agent.Id}");
         sb.AppendLine($"name: {agent.Name}");
+        if (!string.IsNullOrEmpty(agent.Description))
+            sb.AppendLine($"description: {agent.Description}");
         sb.AppendLine($"color: {agent.Color}");
         if (agent.AvatarDataUri is not null)
             sb.AppendLine($"avatar: {agent.AvatarDataUri}");

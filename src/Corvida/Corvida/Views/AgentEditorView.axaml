@@ -54,6 +54,12 @@
                             </StackPanel>
 
                             <StackPanel Spacing="6">
+                                <TextBlock Text="Description" FontWeight="Medium"/>
+                                <TextBlock Text="Shown to Claude Code to decide when to delegate to this agent. Include a &quot;Use when...&quot; trigger phrase." FontSize="11" Opacity="0.6"/>
+                                <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
                                 <TextBlock Text="Color" FontWeight="Medium"/>
                                 <ItemsControl ItemsSource="{Binding ColorPalette}">
                                     <ItemsControl.ItemsPanel>

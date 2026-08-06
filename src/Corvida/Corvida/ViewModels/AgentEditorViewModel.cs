@@ -16,6 +16,7 @@ public partial class AgentEditorViewModel : ViewModelBase
     private readonly Agent _agent;
 
     [ObservableProperty] private string _name = string.Empty;
+    [ObservableProperty] private string _description = string.Empty;
     [ObservableProperty] private string _personality = string.Empty;
     [ObservableProperty] private string _color = "#4C6EF5";
     [ObservableProperty] private string? _avatarDataUri;
@@ -35,6 +36,7 @@ public partial class AgentEditorViewModel : ViewModelBase
         _onBack = onBack;
 
         Name = agent.Name;
+        Description = agent.Description;
         Personality = agent.Personality;
         Color = agent.Color;
         AvatarDataUri = agent.AvatarDataUri;
@@ -44,6 +46,7 @@ public partial class AgentEditorViewModel : ViewModelBase
     private async Task Save()
     {
         _agent.Name = Name.Trim();
+        _agent.Description = Description.Trim();
         _agent.Personality = Personality;
         _agent.Color = Color;
         _agent.AvatarDataUri = AvatarDataUri;

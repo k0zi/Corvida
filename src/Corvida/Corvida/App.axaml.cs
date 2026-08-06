@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
@@ -54,6 +55,7 @@ public partial class App : Application
             services.AddSingleton<IExportService, ExportService>();
             services.AddSingleton<ISkillInstallerService, SkillInstallerService>();
             services.AddSingleton<ISkillService, SkillService>();
+            services.AddSingleton<IAgentInstallerService, AgentInstallerService>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
             services.AddHttpClient("CorvidaApi");
 
@@ -72,6 +74,19 @@ public partial class App : Application
             // Load settings before showing window
             Services.GetRequiredService<ISettingsService>().LoadAsync().GetAwaiter().GetResult();
             SkillPaths.EnsureSeeded();
+            try
+            {
+                // Task.Run so the real async I/O inside runs off the Avalonia UI thread's
+                // SynchronizationContext — blocking on it directly here would deadlock as soon as
+                // an await genuinely suspends (its continuation would need the UI thread to pump
+                // the dispatcher, but that thread is the one stuck in GetResult()).
+                Task.Run(() => BuiltInAgentSeeder.EnsureSeededAsync(Services.GetRequiredService<IAgentService>()))
+                    .GetAwaiter().GetResult();
+            }
+            catch
+            {
+                // Best-effort default content; user can still create agents manually if the server is unreachable.
+            }
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
             var boardsPage = mainVm.Pages.OfType<BoardsPageViewModel>().First();

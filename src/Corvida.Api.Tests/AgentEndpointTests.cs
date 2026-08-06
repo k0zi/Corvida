@@ -87,6 +87,7 @@ public class AgentEndpointTests : IAsyncLifetime
     {
         var created = await PostAgent("Original");
         created.Name = "Renamed";
+        created.Description = "Use when reviewing pull requests.";
         created.Personality = "Thoughtful and thorough.";
         created.Color = "#00AA00";
         created.AvatarDataUri = "data:image/png;base64,AAAA";
@@ -97,6 +98,7 @@ public class AgentEndpointTests : IAsyncLifetime
         var updated = await response.Content.ReadFromJsonAsync<Agent>(JsonOpts);
         Assert.NotNull(updated);
         Assert.Equal("Renamed", updated.Name);
+        Assert.Equal("Use when reviewing pull requests.", updated.Description);
         Assert.Equal("Thoughtful and thorough.", updated.Personality);
         Assert.Equal("#00AA00", updated.Color);
         Assert.Equal("data:image/png;base64,AAAA", updated.AvatarDataUri);

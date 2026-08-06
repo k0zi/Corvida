@@ -11,11 +11,11 @@ public sealed class AgentTools(IAgentService agents)
     private static readonly JsonSerializerOptions JsonOpts = new() { WriteIndented = true };
 
     [McpServerTool, Description(
-        "List all agents. Returns each agent's ID, name, and color.")]
+        "List all agents. Returns each agent's ID, name, description, and color.")]
     public async Task<string> list_agents(CancellationToken cancellationToken)
     {
         var all = await agents.GetAgentsAsync();
-        var result = all.Select(a => new { a.Id, a.Name, a.Color });
+        var result = all.Select(a => new { a.Id, a.Name, a.Description, a.Color });
         return JsonSerializer.Serialize(result, JsonOpts);
     }
 
@@ -32,20 +32,22 @@ public sealed class AgentTools(IAgentService agents)
     }
 
     [McpServerTool, Description(
-        "Create a new agent. Optionally set their markdown personality and accent color.")]
+        "Create a new agent. Optionally set their description, markdown personality, and accent color.")]
     public async Task<string> create_agent(
         [Description("The agent's display name")] string name,
+        [Description("Optional short description of when to delegate to this agent")] string? description,
         [Description("Optional markdown personality description")] string? personality,
         [Description("Optional hex color, e.g. #4C6EF5")] string? color,
         CancellationToken cancellationToken)
     {
         var agent = await agents.CreateAgentAsync(name);
+        if (description is not null) agent.Description = description;
         if (personality is not null) agent.Personality = personality;
         if (color is not null) agent.Color = color;
-        if (personality is not null || color is not null)
+        if (description is not null || personality is not null || color is not null)
             await agents.SaveAgentAsync(agent);
 
-        return JsonSerializer.Serialize(new { agent.Id, agent.Name, agent.Color }, JsonOpts);
+        return JsonSerializer.Serialize(new { agent.Id, agent.Name, agent.Description, agent.Color }, JsonOpts);
     }
 
     [McpServerTool, Description(
@@ -53,6 +55,7 @@ public sealed class AgentTools(IAgentService agents)
     public async Task<string> update_agent(
         [Description("The agent ID to update")] string agentId,
         [Description("New display name, or null to keep existing")] string? name,
+        [Description("New short description of when to delegate to this agent, or null to keep existing")] string? description,
         [Description("New markdown personality, or null to keep existing")] string? personality,
         [Description("New hex color, or null to keep existing")] string? color,
         CancellationToken cancellationToken)
@@ -61,6 +64,7 @@ public sealed class AgentTools(IAgentService agents)
         if (agent is null) return """{"error":"Agent not found"}""";
 
         if (name is not null) agent.Name = name;
+        if (description is not null) agent.Description = description;
         if (personality is not null) agent.Personality = personality;
         if (color is not null) agent.Color = color;
 

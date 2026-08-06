@@ -56,6 +56,7 @@ public static class AgentEndpoints
         if (entity is null) return Results.NotFound();
 
         entity.Name = agent.Name;
+        entity.Description = agent.Description;
         entity.Personality = agent.Personality;
         entity.Color = agent.Color;
         entity.AvatarDataUri = agent.AvatarDataUri;
@@ -128,6 +129,7 @@ public static class AgentEndpoints
     {
         Id = e.Id,
         Name = e.Name,
+        Description = e.Description,
         Personality = e.Personality,
         Color = e.Color,
         AvatarDataUri = e.AvatarDataUri,

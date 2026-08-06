@@ -45,6 +45,32 @@ public class AgentMarkdownSerializerTests
     }
 
     [Fact]
+    public void Serialize_FrontmatterContainsDescription()
+    {
+        var agent = MakeAgent();
+        agent.Description = "Use when reviewing pull requests.";
+        var output = AgentMarkdownSerializer.Serialize(agent);
+        Assert.Contains($"description: {agent.Description}", output);
+    }
+
+    [Fact]
+    public void Serialize_OmitsDescriptionWhenEmpty()
+    {
+        var agent = MakeAgent();
+        agent.Description = string.Empty;
+        Assert.DoesNotContain("description:", AgentMarkdownSerializer.Serialize(agent));
+    }
+
+    [Fact]
+    public void Parse_RoundtripsDescription()
+    {
+        var agent = MakeAgent();
+        agent.Description = "Use when reviewing pull requests.";
+        var parsed = AgentMarkdownSerializer.Parse(AgentMarkdownSerializer.Serialize(agent));
+        Assert.Equal(agent.Description, parsed.Description);
+    }
+
+    [Fact]
     public void Serialize_OmitsAvatarWhenNull()
     {
         var agent = MakeAgent();

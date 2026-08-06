@@ -48,6 +48,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             a.HasKey(e => e.Id);
             a.Property(e => e.Id).HasColumnType("text");
             a.Property(e => e.Name).HasColumnType("text").IsRequired();
+            a.Property(e => e.Description).HasColumnType("text").IsRequired().HasDefaultValue("");
             a.Property(e => e.Personality).HasColumnType("text").IsRequired().HasDefaultValue("");
             a.Property(e => e.Color).HasColumnType("text").IsRequired().HasDefaultValue("#4C6EF5");
             a.Property(e => e.AvatarDataUri).HasColumnType("text");

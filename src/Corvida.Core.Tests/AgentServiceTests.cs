@@ -82,6 +82,18 @@ public class AgentServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAgentAsync_PersistsDescription()
+    {
+        var agent = await _sut.CreateAgentAsync("Ada");
+        agent.Description = "Use when reviewing pull requests.";
+        await _sut.SaveAgentAsync(agent);
+
+        var reloaded = await _sut.GetAgentAsync(agent.Id);
+        Assert.NotNull(reloaded);
+        Assert.Equal("Use when reviewing pull requests.", reloaded!.Description);
+    }
+
+    [Fact]
     public async Task DeleteAgentAsync_RemovesAgentFile()
     {
         var agent = await _sut.CreateAgentAsync("Ada");

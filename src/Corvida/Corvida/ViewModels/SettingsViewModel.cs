@@ -14,6 +14,7 @@ public partial class SettingsViewModel : PageBase
     private readonly IDialogService _dialogService;
     private readonly IExportService _exportService;
     private readonly ISkillInstallerService _skillInstallerService;
+    private readonly IAgentInstallerService _agentInstallerService;
     private Func<Task>? _onSaved;
 
     [ObservableProperty] private string _dataPath = string.Empty;
@@ -28,16 +29,24 @@ public partial class SettingsViewModel : PageBase
     [ObservableProperty] private bool _opencodeSkillsInstalled;
     [ObservableProperty] private bool _hermesSkillsInstalled;
 
+    [ObservableProperty] private string _claudeCodeAgentsPath = "~/.claude/agents";
+    [ObservableProperty] private string _opencodeAgentsPath = "~/.config/opencode/agent";
+    [ObservableProperty] private string _hermesAgentsPath = "~/.hermes/agents";
+    [ObservableProperty] private bool _claudeCodeAgentsInstalled;
+    [ObservableProperty] private bool _opencodeAgentsInstalled;
+    [ObservableProperty] private bool _hermesAgentsInstalled;
+
     public override string MenuTitle => "Settings";
     public override MaterialIconKind Icon => MaterialIconKind.Cog;
     public override int DisplayOrder => 99;
 
-    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService)
+    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService)
     {
         _settingsService = settingsService;
         _dialogService = dialogService;
         _exportService = exportService;
         _skillInstallerService = skillInstallerService;
+        _agentInstallerService = agentInstallerService;
 
         DataPath = settingsService.Settings.DataPath;
         ServerUrl = settingsService.Settings.ServerUrl ?? string.Empty;
@@ -47,11 +56,27 @@ public partial class SettingsViewModel : PageBase
         _claudeCodeSkillsInstalled = _skillInstallerService.IsInstalled(ClaudeCodeSkillsPath);
         _opencodeSkillsInstalled = _skillInstallerService.IsInstalled(OpencodeSkillsPath);
         _hermesSkillsInstalled = _skillInstallerService.IsInstalled(HermesSkillsPath);
+
+        _ = RefreshAgentInstallStateAsync();
     }
 
     partial void OnClaudeCodeSkillsPathChanged(string value) => ClaudeCodeSkillsInstalled = _skillInstallerService.IsInstalled(value);
     partial void OnOpencodeSkillsPathChanged(string value) => OpencodeSkillsInstalled = _skillInstallerService.IsInstalled(value);
     partial void OnHermesSkillsPathChanged(string value) => HermesSkillsInstalled = _skillInstallerService.IsInstalled(value);
+
+    partial void OnClaudeCodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => ClaudeCodeAgentsInstalled = v);
+    partial void OnOpencodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => OpencodeAgentsInstalled = v);
+    partial void OnHermesAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => HermesAgentsInstalled = v);
+
+    private async Task RefreshAgentInstallStateAsync()
+    {
+        await RefreshOneAgentInstallStateAsync(ClaudeCodeAgentsPath, v => ClaudeCodeAgentsInstalled = v);
+        await RefreshOneAgentInstallStateAsync(OpencodeAgentsPath, v => OpencodeAgentsInstalled = v);
+        await RefreshOneAgentInstallStateAsync(HermesAgentsPath, v => HermesAgentsInstalled = v);
+    }
+
+    private async Task RefreshOneAgentInstallStateAsync(string path, Action<bool> setInstalled) =>
+        setInstalled(await _agentInstallerService.IsInstalledAsync(path));
 
     partial void OnIsLocalFolderChanged(bool value)
     {
@@ -112,6 +137,31 @@ public partial class SettingsViewModel : PageBase
         catch (System.Exception ex)
         {
             await _dialogService.ShowConfirmDialogAsync("Skill Install Failed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private Task ToggleClaudeCodeAgents() => ToggleAgentInstallAsync(ClaudeCodeAgentsPath, installed => ClaudeCodeAgentsInstalled = installed);
+
+    [RelayCommand]
+    private Task ToggleOpencodeAgents() => ToggleAgentInstallAsync(OpencodeAgentsPath, installed => OpencodeAgentsInstalled = installed);
+
+    [RelayCommand]
+    private Task ToggleHermesAgents() => ToggleAgentInstallAsync(HermesAgentsPath, installed => HermesAgentsInstalled = installed);
+
+    private async Task ToggleAgentInstallAsync(string path, Action<bool> setInstalled)
+    {
+        try
+        {
+            if (await _agentInstallerService.IsInstalledAsync(path))
+                await _agentInstallerService.UninstallAsync(path);
+            else
+                await _agentInstallerService.InstallAsync(path);
+            setInstalled(await _agentInstallerService.IsInstalledAsync(path));
+        }
+        catch (System.Exception ex)
+        {
+            await _dialogService.ShowConfirmDialogAsync("Agent Install Failed", ex.Message);
         }
     }
 }
