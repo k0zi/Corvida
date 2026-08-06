@@ -19,7 +19,7 @@ public static class SkillPaths
             CopyDirectory(BundledSkillsRoot, UserSkillsRoot);
     }
 
-    private static void CopyDirectory(string sourceDir, string destDir)
+    internal static void CopyDirectory(string sourceDir, string destDir)
     {
         Directory.CreateDirectory(destDir);
 

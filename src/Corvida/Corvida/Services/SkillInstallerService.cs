@@ -29,13 +29,9 @@ public class SkillInstallerService : ISkillInstallerService
 
             await CopyFileAsync(Path.Combine(sourceDir, "SKILL.md"), Path.Combine(destDir, "SKILL.md"));
 
-            var sourceYaml = Path.Combine(sourceDir, "agents", "openai.yaml");
-            if (File.Exists(sourceYaml))
-            {
-                var destAgentsDir = Path.Combine(destDir, "agents");
-                Directory.CreateDirectory(destAgentsDir);
-                await CopyFileAsync(sourceYaml, Path.Combine(destAgentsDir, "openai.yaml"));
-            }
+            var sourceAgentsDir = Path.Combine(sourceDir, "agents");
+            if (Directory.Exists(sourceAgentsDir))
+                SkillPaths.CopyDirectory(sourceAgentsDir, Path.Combine(destDir, "agents"));
         }
     }
 
