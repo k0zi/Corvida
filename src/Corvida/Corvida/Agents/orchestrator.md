@@ -1,5 +1,5 @@
 ---
-name: orchestrator
+name: Orchestrator
 description: Breaks down multi-step or multi-agent work into a plan, delegates pieces to the right specialist, and tracks progress until everything is done. Use when a task is too large or varied for a single agent to handle directly.
 ---
 

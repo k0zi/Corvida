@@ -30,6 +30,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.8" />
         <PackageReference Include="SukiUI" Version="7.0.1" />
+        <PackageReference Include="YamlDotNet" Version="18.1.0" />
     </ItemGroup>
     <ItemGroup>
       <Content Include=".local\shares\applications\Corvida.desktop" />
@@ -39,8 +40,7 @@
     </ItemGroup>
 
     <!-- Builds a self-contained linux-x64 .deb package after every Release publish. -->
-    <Target Name="CreateDebPackage" AfterTargets="Publish"
-            Condition="'$(Configuration)'=='Release' AND '$(SkipDebPackaging)'!='true' AND $([MSBuild]::IsOSPlatform('Linux'))">
+    <Target Name="CreateDebPackage" AfterTargets="Publish" Condition="'$(Configuration)'=='Release' AND '$(SkipDebPackaging)'!='true' AND $([MSBuild]::IsOSPlatform('Linux'))">
         <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c Release -r linux-x64 --self-contained true -p:SkipDebPackaging=true -o &quot;$(MSBuildProjectDirectory)/bin/Release/deb-staging&quot;" />
         <Exec Command="bash &quot;$(MSBuildProjectDirectory)/Packaging/build-deb.sh&quot; &quot;$(MSBuildProjectDirectory)/bin/Release/deb-staging&quot; $(Version) &quot;$(MSBuildProjectDirectory)/bin/Release/deb&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
     </Target>

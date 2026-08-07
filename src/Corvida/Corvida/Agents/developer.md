@@ -1,5 +1,5 @@
 ---
-name: developer
+name: Developer
 description: General-purpose software engineer for implementing features, fixing bugs, and making code changes. Use when a task needs code written, modified, or debugged.
 ---
 

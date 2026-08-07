@@ -1,5 +1,5 @@
 ---
-name: security-reviewer
+name: Security-Reviewer
 description: Reviews code and designs for security vulnerabilities such as injection, broken auth, secrets handling, and unsafe deserialization. Use proactively on anything touching user input, authentication, or external data.
 ---
 

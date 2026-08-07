@@ -117,7 +117,7 @@ Every top-level menu page implements `PageBase` (`MenuTitle`, `Icon`, `DisplayOr
 | 10 | `AgentsPageViewModel` | `AgentsListViewModel`, `AgentEditorViewModel` — CRUD over `Agent` |
 | 20 | `SkillsPageViewModel` | `SkillsListViewModel`, `SkillEditorViewModel` — CRUD over `Skill` (see [Skills](#skills-corvida)) |
 | 50 | `ArchivedBoardsViewModel` | read-only list of archived boards |
-| 99 | `SettingsViewModel` | storage mode, data path, skill installers, export |
+| 99 | `SettingsViewModel` | storage mode, data path, skill/agent/MCP installers, export |
 
 Each list/editor pair follows the same shape: the list `ViewModel` takes an `Action<T> onEdit` callback into its constructor and the owning page's nav-stack (`NavigateTo`/`GoBack`) wires it to push/pop the editor; the editor takes `(entity, service, Action<T> onSaved, Action onBack)` and exposes a `[RelayCommand] Save()` / `[RelayCommand] GoBack()`. Copy `AgentsPageViewModel`/`AgentsListViewModel`/`AgentEditorViewModel` (or the newer `Skills*` equivalents) as the template for a new CRUD page rather than the heavier `BoardEditorViewModel`.
 
@@ -176,3 +176,18 @@ The desktop app can install Claude-Code-style skills (a `SKILL.md` with YAML fro
 - **Editable copy**: `SkillPaths.UserSkillsRoot` (`{AppData}/Corvida/skills/`) is a user-writable folder seeded once from the bundled skills via `SkillPaths.EnsureSeeded()` (called at app startup in `App.axaml.cs`). All editing/install operations read from and write to this folder, never the bundled/read-only one — a packaged (deb) install can't write next to its own binaries, and edits there would be lost on the next build anyway.
 - `ISkillService`/`SkillService` — file-based CRUD (`GetSkillsAsync`/`CreateSkillAsync`/`SaveSkillAsync`/`DeleteSkillAsync`) over `UserSkillsRoot`, desktop-only (not in `Corvida.Core` — skills aren't synced via the API/MCP like boards/tasks/agents are). `SkillMarkdownSerializer` / `SkillAgentYamlSerializer` hand-parse the two file formats, same style as `MarkdownSerializer` in Core.
 - `ISkillInstallerService`/`SkillInstallerService` — discovers skills dynamically from `UserSkillsRoot` (no hardcoded list) and copies both `SKILL.md` and `agents/openai.yaml` into a target root. Driven from the **Settings** page's "Install Skills" section, with per-tool target paths (`~/.claude/skills`, `~/.config/opencode/skills`, `~/.hermes/skills`).
+
+## Agent seeding & export (Corvida)
+
+Separate from the Skills feature, but the same file-based-installer shape — this exports Corvida's own **Agent** entities (the Kanban board-member records) as Claude-Code-style subagent `.md` files, and seeds a starter set of them at first run:
+
+- **Bundled agent templates** ship under `Corvida/Corvida/Agents/*.md` (copied to the build output via `Corvida.csproj`'s `<None Include="Agents\**" .../>`) — currently `architect`, `code-reviewer`, `developer`, `orchestrator`, `security-reviewer`. Each file uses the same frontmatter+body shape as a Claude Code subagent (`name`/`description` + Markdown body).
+- `BuiltInAgentSeeder.EnsureSeededAsync` (static, called fire-and-forget from `App.axaml.cs` at startup) reads those templates via `SkillMarkdownSerializer.Parse` and creates one `Agent` per template on first run — with a deterministic `builtin-{slug}` ID (so re-runs don't duplicate them) and a per-slug accent color — via whatever `IAgentService` is currently active (local or HTTP).
+- `IAgentInstallerService`/`AgentInstallerService` does the reverse: it serializes every *existing* `Agent` (built-in or user-created) via `SkillMarkdownSerializer.Serialize` and writes one `{slug}.md` per agent into a target root, so any Corvida Agent — not just the bundled templates — can be installed as a real Claude Code/OpenCode/Hermes subagent. Driven from the **Settings** page's "Install Agents" section, with the same per-tool target paths as Skills but under an `agents/` (not `skills/`) folder.
+
+## MCP self-registration (Corvida)
+
+`IMcpInstallerService`/`McpInstallerService` lets the desktop app register the bundled `Corvida.Mcp` server with an external tool's own config, from the **Settings** page's "Install MCP Server" section (needs a path to `Corvida.Mcp.csproj` plus a per-tool config path, e.g. `~/.claude.json`, `~/.config/opencode/opencode.json`, `~/.hermes/config.yaml`):
+
+- Each target (`McpTarget.ClaudeCode`/`OpenCode`/`Hermes`) merges a single `"corvida"` entry into that tool's real config file — `mcpServers`/`mcp` JSON key for Claude Code/OpenCode, `mcp_servers` YAML key for Hermes — without touching any other key in the file, since these are the user's actively-used configs (Claude Code's `~/.claude.json` in particular carries project history unrelated to MCP).
+- Uninstall removes just that one entry. Install/uninstall state is re-checked on every path-field edit in `SettingsViewModel` so the toggle buttons stay accurate.

@@ -1,5 +1,5 @@
 ---
-name: architect
+name: Architect
 description: Evaluates system design and implementation tradeoffs before code is written. Use when a task needs a design decision, a new component's shape, or a review of an approach's risks before committing to it.
 ---
 

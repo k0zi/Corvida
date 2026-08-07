@@ -185,6 +185,79 @@
 
                     </StackPanel>
                 </sukiUi:GlassCard>
+
+                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                    <StackPanel Spacing="16">
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Install MCP Server" FontWeight="Medium" />
+                            <TextBlock Text="Register the Corvida MCP server with an AI tool so it can manage your boards directly."
+                                       FontSize="12" Opacity="0.6" />
+                        </StackPanel>
+
+                        <!-- Shared MCP project path -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="MCP Server Project Path" FontWeight="Medium" />
+                            <TextBlock Text="Path to Corvida.Mcp.csproj, used when installing to any of the tools below."
+                                       FontSize="12" Opacity="0.6" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding McpProjectPath}" PlaceholderText="/path/to/src/Corvida.Mcp/Corvida.Mcp.csproj" />
+                                <Button Grid.Column="1" Click="BrowseMcpProject_Click" Classes="Basic">
+                                    <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Claude Code -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Claude Code" FontWeight="Medium" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding ClaudeCodeMcpConfigPath}" />
+                                <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeMcpInstalled}"
+                                        Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="Flat">
+                                    <TextBlock Text="Install" />
+                                </Button>
+                                <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeMcpInstalled}"
+                                        Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="Basic Danger">
+                                    <TextBlock Text="Uninstall" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- OpenCode -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="OpenCode" FontWeight="Medium" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding OpencodeMcpConfigPath}" />
+                                <Button Grid.Column="1" IsVisible="{Binding !OpencodeMcpInstalled}"
+                                        Command="{Binding ToggleOpencodeMcpCommand}" Classes="Flat">
+                                    <TextBlock Text="Install" />
+                                </Button>
+                                <Button Grid.Column="1" IsVisible="{Binding OpencodeMcpInstalled}"
+                                        Command="{Binding ToggleOpencodeMcpCommand}" Classes="Basic Danger">
+                                    <TextBlock Text="Uninstall" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Hermes -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Hermes" FontWeight="Medium" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0" Text="{Binding HermesMcpConfigPath}" />
+                                <Button Grid.Column="1" IsVisible="{Binding !HermesMcpInstalled}"
+                                        Command="{Binding ToggleHermesMcpCommand}" Classes="Flat">
+                                    <TextBlock Text="Install" />
+                                </Button>
+                                <Button Grid.Column="1" IsVisible="{Binding HermesMcpInstalled}"
+                                        Command="{Binding ToggleHermesMcpCommand}" Classes="Basic Danger">
+                                    <TextBlock Text="Uninstall" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+
+                    </StackPanel>
+                </sukiUi:GlassCard>
             </StackPanel>
         </ScrollViewer>
     </Grid>

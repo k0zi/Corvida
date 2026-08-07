@@ -23,6 +23,22 @@ public partial class SettingsView : UserControl
             vm.DataPath = folders[0].Path.LocalPath;
     }
 
+    private async void BrowseMcpProject_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null) return;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select Corvida.Mcp.csproj",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new FilePickerFileType("Project files") { Patterns = ["*.csproj"] } },
+        });
+
+        if (files.Count > 0 && DataContext is SettingsViewModel vm)
+            vm.McpProjectPath = files[0].Path.LocalPath;
+    }
+
     private async void ExportToFolder_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var topLevel = TopLevel.GetTopLevel(this);

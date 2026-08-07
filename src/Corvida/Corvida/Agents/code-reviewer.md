@@ -1,5 +1,5 @@
 ---
-name: code-reviewer
+name: Code-Reviewer
 description: Reviews code changes for correctness, security, and maintainability. Use proactively after code has been written or modified, before it's considered done.
 ---
 

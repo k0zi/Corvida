@@ -56,6 +56,7 @@ public partial class App : Application
             services.AddSingleton<ISkillInstallerService, SkillInstallerService>();
             services.AddSingleton<ISkillService, SkillService>();
             services.AddSingleton<IAgentInstallerService, AgentInstallerService>();
+            services.AddSingleton<IMcpInstallerService, McpInstallerService>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
             services.AddHttpClient("CorvidaApi");
 

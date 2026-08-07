@@ -15,6 +15,7 @@ public partial class SettingsViewModel : PageBase
     private readonly IExportService _exportService;
     private readonly ISkillInstallerService _skillInstallerService;
     private readonly IAgentInstallerService _agentInstallerService;
+    private readonly IMcpInstallerService _mcpInstallerService;
     private Func<Task>? _onSaved;
 
     [ObservableProperty] private string _dataPath = string.Empty;
@@ -36,17 +37,26 @@ public partial class SettingsViewModel : PageBase
     [ObservableProperty] private bool _opencodeAgentsInstalled;
     [ObservableProperty] private bool _hermesAgentsInstalled;
 
+    [ObservableProperty] private string _mcpProjectPath = string.Empty;
+    [ObservableProperty] private string _claudeCodeMcpConfigPath = "~/.claude.json";
+    [ObservableProperty] private string _opencodeMcpConfigPath = "~/.config/opencode/opencode.json";
+    [ObservableProperty] private string _hermesMcpConfigPath = "~/.hermes/config.yaml";
+    [ObservableProperty] private bool _claudeCodeMcpInstalled;
+    [ObservableProperty] private bool _opencodeMcpInstalled;
+    [ObservableProperty] private bool _hermesMcpInstalled;
+
     public override string MenuTitle => "Settings";
     public override MaterialIconKind Icon => MaterialIconKind.Cog;
     public override int DisplayOrder => 99;
 
-    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService)
+    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService)
     {
         _settingsService = settingsService;
         _dialogService = dialogService;
         _exportService = exportService;
         _skillInstallerService = skillInstallerService;
         _agentInstallerService = agentInstallerService;
+        _mcpInstallerService = mcpInstallerService;
 
         DataPath = settingsService.Settings.DataPath;
         ServerUrl = settingsService.Settings.ServerUrl ?? string.Empty;
@@ -56,6 +66,10 @@ public partial class SettingsViewModel : PageBase
         _claudeCodeSkillsInstalled = _skillInstallerService.IsInstalled(ClaudeCodeSkillsPath);
         _opencodeSkillsInstalled = _skillInstallerService.IsInstalled(OpencodeSkillsPath);
         _hermesSkillsInstalled = _skillInstallerService.IsInstalled(HermesSkillsPath);
+
+        _claudeCodeMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.ClaudeCode, ClaudeCodeMcpConfigPath);
+        _opencodeMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.OpenCode, OpencodeMcpConfigPath);
+        _hermesMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.Hermes, HermesMcpConfigPath);
 
         _ = RefreshAgentInstallStateAsync();
     }
@@ -67,6 +81,10 @@ public partial class SettingsViewModel : PageBase
     partial void OnClaudeCodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => ClaudeCodeAgentsInstalled = v);
     partial void OnOpencodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => OpencodeAgentsInstalled = v);
     partial void OnHermesAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => HermesAgentsInstalled = v);
+
+    partial void OnClaudeCodeMcpConfigPathChanged(string value) => ClaudeCodeMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.ClaudeCode, value);
+    partial void OnOpencodeMcpConfigPathChanged(string value) => OpencodeMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.OpenCode, value);
+    partial void OnHermesMcpConfigPathChanged(string value) => HermesMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.Hermes, value);
 
     private async Task RefreshAgentInstallStateAsync()
     {
@@ -162,6 +180,37 @@ public partial class SettingsViewModel : PageBase
         catch (System.Exception ex)
         {
             await _dialogService.ShowConfirmDialogAsync("Agent Install Failed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private Task ToggleClaudeCodeMcp() => ToggleMcpInstallAsync(McpTarget.ClaudeCode, ClaudeCodeMcpConfigPath, installed => ClaudeCodeMcpInstalled = installed);
+
+    [RelayCommand]
+    private Task ToggleOpencodeMcp() => ToggleMcpInstallAsync(McpTarget.OpenCode, OpencodeMcpConfigPath, installed => OpencodeMcpInstalled = installed);
+
+    [RelayCommand]
+    private Task ToggleHermesMcp() => ToggleMcpInstallAsync(McpTarget.Hermes, HermesMcpConfigPath, installed => HermesMcpInstalled = installed);
+
+    private async Task ToggleMcpInstallAsync(McpTarget target, string configPath, Action<bool> setInstalled)
+    {
+        if (string.IsNullOrWhiteSpace(McpProjectPath) && !_mcpInstallerService.IsInstalled(target, configPath))
+        {
+            await _dialogService.ShowConfirmDialogAsync("MCP Server Install Failed", "Set the MCP server project path first.");
+            return;
+        }
+
+        try
+        {
+            if (_mcpInstallerService.IsInstalled(target, configPath))
+                _mcpInstallerService.Uninstall(target, configPath);
+            else
+                _mcpInstallerService.Install(target, configPath, McpProjectPath.Trim());
+            setInstalled(_mcpInstallerService.IsInstalled(target, configPath));
+        }
+        catch (System.Exception ex)
+        {
+            await _dialogService.ShowConfirmDialogAsync("MCP Server Install Failed", ex.Message);
         }
     }
 }

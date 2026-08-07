@@ -20,7 +20,7 @@ services:
       dockerfile: Corvida.Api/Dockerfile
     restart: unless-stopped
     ports:
-      - "5000:8080"
+      - "5000:5083"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__CorvidaApi: >-
