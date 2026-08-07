@@ -84,19 +84,30 @@ dotnet publish Corvida/Corvida/Corvida.csproj -c Release -o /path/to/install/dir
 
 ### REST API
 
-Run `Corvida.Api` with PostgreSQL using Docker or Podman Compose (from the repo root):
+The quickest way to stand up `Corvida.Api` + PostgreSQL from a bare Linux machine is the bundled installer, which installs Podman (or Docker) if it's missing, builds the image, and starts the stack:
+
+```bash
+./install.sh                    # installs Podman if needed, runs on :5083
+./install.sh --engine docker    # use Docker instead (must already be installed)
+./install.sh --port 5000        # expose on a different host port
+```
+
+It can also be run standalone (e.g. via `curl ... | bash`), in which case it clones the repo into `--dir` (default `~/corvida-api`) instead of using the current checkout. Run `./install.sh --help` for all options.
+
+Alternatively, drive Compose directly (from the repo root):
 
 ```bash
 docker compose up --build   # or: podman compose up --build
 ```
 
-This builds the API image and starts it alongside PostgreSQL, exposing the API on `http://localhost:5000`.
+This builds the API image and starts it alongside PostgreSQL, exposing the API on `http://localhost:5083`.
 
-> **Podman users:** make sure the Podman API socket is running first, since Compose talks to it over the Docker-compatible API:
+> **Podman users going the manual `docker compose` route:** make sure the Podman API socket is running first, since Compose talks to it over the Docker-compatible API:
 > ```bash
 > systemctl --user enable --now podman.socket
 > export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 > ```
+> Not needed if you use `podman compose` directly, or the `install.sh` script above.
 
 Alternatively, run everything locally with **.NET Aspire** for a dashboard and hot reload during development:
 
@@ -147,7 +158,7 @@ App settings live at `{AppData}/Corvida/settings.json`, shared by the desktop ap
 {
   "DataPath": "~/CorvidaData",
   "StorageMode": 0,
-  "ServerUrl": "http://localhost:5000/"
+  "ServerUrl": "http://localhost:5083/"
 }
 ```
 

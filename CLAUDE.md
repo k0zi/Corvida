@@ -19,7 +19,7 @@ dotnet clean                        # clean build artifacts
 
 **Full stack via Docker** (from repo root):
 ```bash
-docker compose up --build           # API + PostgreSQL; API exposed on :5000
+docker compose up --build           # API + PostgreSQL; API exposed on :5083
 ```
 
 ## Solution Structure
@@ -61,7 +61,7 @@ boards/{boardId}/tasks/{taskId}.md   ← KanbanTask as Markdown with YAML frontm
 agents/{agentId}.md                  ← Agent as Markdown with YAML frontmatter
 ```
 
-**ServerHosted** — delegates to `Corvida.Api` over HTTP (`AppSettings.ServerUrl`, default `http://localhost:5000`).
+**ServerHosted** — delegates to `Corvida.Api` over HTTP (`AppSettings.ServerUrl`, default `http://localhost:5083`).
 
 App config lives at `{AppData}/Corvida/settings.json`.
 

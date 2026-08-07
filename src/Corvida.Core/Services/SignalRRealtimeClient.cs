@@ -7,7 +7,7 @@ namespace Corvida.Services;
 
 public class SignalRRealtimeClient(ISettingsService settings) : IRealtimeClient
 {
-    private string Base => (settings.Settings.ServerUrl ?? "http://localhost:5000").TrimEnd('/');
+    private string Base => (settings.Settings.ServerUrl ?? "http://localhost:5083").TrimEnd('/');
 
     private HubConnection? _connection;
 

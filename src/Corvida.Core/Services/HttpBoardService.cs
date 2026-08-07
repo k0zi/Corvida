@@ -11,7 +11,7 @@ namespace Corvida.Services;
 public class HttpBoardService(IHttpClientFactory factory, ISettingsService settings) : IBoardService
 {
     private HttpClient Client => factory.CreateClient("CorvidaApi");
-    private string Base => (settings.Settings.ServerUrl ?? "http://localhost:5000").TrimEnd('/');
+    private string Base => (settings.Settings.ServerUrl ?? "http://localhost:5083").TrimEnd('/');
 
     public async Task<List<Board>> GetBoardsAsync()
     {

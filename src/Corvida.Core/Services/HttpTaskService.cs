@@ -10,7 +10,7 @@ namespace Corvida.Services;
 public class HttpTaskService(IHttpClientFactory factory, ISettingsService settings) : ITaskService
 {
     private HttpClient Client => factory.CreateClient("CorvidaApi");
-    private string Base => (settings.Settings.ServerUrl ?? "http://localhost:5000").TrimEnd('/');
+    private string Base => (settings.Settings.ServerUrl ?? "http://localhost:5083").TrimEnd('/');
 
     public async Task<KanbanTask?> GetTaskAsync(string boardId, string taskId)
     {
