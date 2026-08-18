@@ -16,11 +16,21 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 builder.Services.AddOpenApi();
 builder.Services.AddSignalR();
 
+// Allows browser-hosted clients (e.g. Corvida.Web) to call this API cross-origin.
+const string CorsPolicy = "CorvidaWeb";
+builder.Services.AddCors(options =>
+    options.AddPolicy(CorsPolicy, policy => policy
+        .AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
+
 // PascalCase JSON — matches desktop System.Text.Json defaults (no PropertyNamingPolicy)
 builder.Services.ConfigureHttpJsonOptions(opt =>
     opt.SerializerOptions.PropertyNamingPolicy = null);
 
 var app = builder.Build();
+
+app.UseCors(CorsPolicy);
 
 app.MapDefaultEndpoints();
 

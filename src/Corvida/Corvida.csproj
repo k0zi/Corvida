@@ -36,7 +36,8 @@
       <Content Include=".local\shares\applications\Corvida.desktop" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\..\Corvida.Core\Corvida.Core.csproj" />
+      <ProjectReference Include="..\Corvida.Core\Corvida.Core.csproj" />
+      <ProjectReference Include="..\Corvida.Shared\Corvida.Shared.csproj" />
     </ItemGroup>
 
     <!-- Builds a self-contained linux-x64 .deb package after every Release publish. -->

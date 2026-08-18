@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:vm="clr-namespace:Corvida.ViewModels;assembly=Corvida.Shared"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="620"
+             x:Class="Corvida.Web.Views.MainView"
+             x:DataType="vm:MainWindowViewModel">
+
+    <sukiUi:SukiMainHost>
+        <sukiUi:SukiMainHost.Hosts>
+            <sukiUi:SukiDialogHost Manager="{Binding DialogManager}" />
+        </sukiUi:SukiMainHost.Hosts>
+
+        <sukiUi:SukiSideMenu IsSearchEnabled="True"
+                             ItemsSource="{Binding Pages}"
+                             SelectedItem="{Binding ActivePage, Mode=TwoWay}">
+            <sukiUi:SukiSideMenu.HeaderContent>
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <Image Width="96" Height="96" Source="/Assets/corvida.png"/>
+                    <Button Command="{Binding ToggleThemeCommand}" Classes="Basic" HorizontalAlignment="Center">
+                        <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
+                    </Button>
+                </StackPanel>
+            </sukiUi:SukiSideMenu.HeaderContent>
+            <sukiUi:SukiSideMenu.ItemTemplate>
+                <DataTemplate x:DataType="vm:PageBase">
+                    <sukiUi:SukiSideMenuItem Header="{Binding MenuTitle}">
+                        <sukiUi:SukiSideMenuItem.Icon>
+                            <materialIcons:MaterialIcon Kind="{Binding Icon}" />
+                        </sukiUi:SukiSideMenuItem.Icon>
+                        <sukiUi:SukiSideMenuItem.PageContent>
+                            <ContentControl Content="{Binding}" />
+                        </sukiUi:SukiSideMenuItem.PageContent>
+                    </sukiUi:SukiSideMenuItem>
+                </DataTemplate>
+            </sukiUi:SukiSideMenu.ItemTemplate>
+        </sukiUi:SukiSideMenu>
+    </sukiUi:SukiMainHost>
+</UserControl>

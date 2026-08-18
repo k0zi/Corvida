@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Corvida.Views.Dialogs.InputDialogContent"
+             Width="360">
+
+    <StackPanel Margin="20" Spacing="12" VerticalAlignment="Center">
+        <TextBlock x:Name="PromptText" FontSize="14" TextWrapping="Wrap"/>
+        <TextBox x:Name="InputBox" KeyDown="InputBox_KeyDown"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Cancel" Click="Cancel_Click" Classes="Basic"/>
+            <Button Content="OK" Click="Ok_Click" Classes="Flat"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

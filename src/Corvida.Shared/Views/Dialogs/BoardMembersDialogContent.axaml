@@ -1,16 +1,11 @@
-<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
-                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                   xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-                   xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-                   xmlns:models="using:Corvida.Models"
-                   xmlns:conv="using:Corvida.Converters"
-                   xmlns:avc="using:Avalonia.Data.Converters"
-                   x:Class="Corvida.Views.Dialogs.BoardMembersDialog"
-                   Title="Manage Board Members"
-                   Width="520" Height="420"
-                   CanResize="False"
-                   WindowStartupLocation="CenterOwner"
-                   ShowInTaskbar="False">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:models="using:Corvida.Models"
+             xmlns:conv="using:Corvida.Converters"
+             x:Class="Corvida.Views.Dialogs.BoardMembersDialogContent"
+             Width="520" Height="420">
 
     <DockPanel Margin="16" LastChildFill="True">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
@@ -45,7 +40,7 @@
                     <materialIcons:MaterialIcon Kind="ArrowLeft" Width="16" Height="16" />
                 </Button>
             </StackPanel>
-            
+
             <sukiUi:GlassCard Grid.Column="2" Width="200" Padding="12">
             <StackPanel Grid.Column="2" Spacing="6">
                 <TextBlock Text="Board Members (and order)" FontWeight="Medium" />
@@ -74,4 +69,4 @@
                 </sukiUi:GlassCard>
         </Grid>
     </DockPanel>
-</sukiUi:SukiWindow>
+</UserControl>

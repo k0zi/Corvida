@@ -28,6 +28,9 @@
             <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
         </Button>
     </sukiUi:SukiWindow.RightWindowTitleBarControls>
+    <sukiUi:SukiWindow.Hosts>
+        <sukiUi:SukiDialogHost Manager="{Binding DialogManager}" />
+    </sukiUi:SukiWindow.Hosts>
     <sukiUi:SukiSideMenu IsSearchEnabled="True"
                          ItemsSource="{Binding Pages}"
                          SelectedItem="{Binding ActivePage, Mode=TwoWay}">
