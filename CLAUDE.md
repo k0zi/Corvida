@@ -36,7 +36,7 @@ Ten projects in `src/Corvida.sln`:
 | `Corvida.ServiceDefaults` | Aspire shared lib | OpenTelemetry, resilience, service-discovery defaults for `Corvida.Api` |
 | `Corvida.Core.Tests` | xUnit test project | Unit tests for `Corvida.Core` |
 | `Corvida.Shared` | Avalonia class library | UI shared by the desktop and browser hosts: ViewModels, Views, dialogs, converters, `ViewLocator` |
-| `Corvida.Web` | Avalonia Browser (WASM) | The same UI running in a browser; references `Corvida.Shared` only |
+| `Corvida.Web` | Avalonia Browser (WASM) | The same UI running in a browser; references `Corvida.Shared` only. Shipped by `docker-compose` as an nginx container that also proxies the API on the same origin — see `Corvida.Web/nginx.conf` |
 | `Corvida.Api.Tests` | xUnit test project | Integration tests for `Corvida.Api` (EF Core migrations, board/task/agent endpoints, authentication) |
 
 Both `Corvida` and `Corvida.Mcp` reference `Corvida.Core` and share the same service layer. `Corvida.Api` also references `Corvida.Core` and `Corvida.ServiceDefaults`.
@@ -143,6 +143,48 @@ Endpoints:
 Board groups are stored as JSONB in `BoardEntity.GroupsJson`. Tasks are stored in a `TaskEntity` table with a cascade-delete FK to boards. Agents are stored in an `AgentEntity` table, independent of any board.
 
 **Realtime**: `KanbanHub` (SignalR, mapped at `/hubs/kanban`) broadcasts `BoardChanged`/`BoardDeleted`/`TaskChanged`/`TaskDeleted`/`AgentChanged`/`AgentDeleted` to connected clients whenever an endpoint mutates data, so every endpoint handler that changes state also calls the corresponding hub method via `IHubContext<KanbanHub, IKanbanHubClient>`.
+
+## Web UI hosting (Corvida.Web)
+
+`docker-compose` builds `Corvida.Web/Dockerfile` into an nginx image on ports **8183** (HTTP) and
+**8283** (HTTPS); `install.sh` exposes `--web-port`, `--web-https-port` and `--no-web`.
+
+nginx serves the WebAssembly bundle **and proxies `/api`, `/connect` and `/hubs`** to the API
+container. Same-origin is load-bearing twice over: it removes CORS from the picture entirely, and it
+is the only way the HTTPS port can work, since a page served over HTTPS may not call a plain-HTTP
+API. The `/hubs` location carries the WebSocket upgrade headers and a long read timeout, or SignalR
+connections drop every 60 seconds.
+
+The API address is **not** baked in at build time. `Program.ResolveApiBaseUrlAsync` reads
+`config.json` from the site root at startup and falls back to the page's own origin (taken from the
+`location.href` that `main.js` passes as `args[0]`). The container ships `{"apiBaseUrl": ""}` —
+same origin — while the repo's `wwwroot/config.json` points at `http://localhost:5083` so
+`dotnet run` still works against a separately hosted API.
+
+The HTTPS certificate is self-signed, generated on first start by
+`docker-entrypoint.d/10-corvida-cert.sh` into the `webcerts` volume.
+
+### Three things the published WASM build needs that the desktop does not
+
+All three fail *silently* — the app loads, requests return 200, and the UI is simply wrong — so
+verify the browser build by looking at a rendered page, not by checking HTTP status codes.
+
+1. **`TrimmerRoots.xml`** preserves `Corvida.Core` and `Corvida.Shared`. `ViewLocator` resolves
+   views by type name, so nothing references them statically and the trimmer removes them; every
+   page then renders as `Not Found: Corvida.Views.SomeView`.
+2. **`JsonSerializerIsReflectionEnabledByDefault=true`.** The WebAssembly SDK turns
+   System.Text.Json's reflection path off, so every `GetFromJsonAsync` throws
+   `InvalidOperationException: JsonSerializerIsReflectionDisabled`. Because the list view models
+   load fire-and-forget, the exception is swallowed and every list renders empty while the network
+   tab shows a perfectly good response. The alternative is a `JsonSerializerContext` threaded
+   through every call site in `Corvida.Core`, which the desktop and MCP hosts do not need.
+3. **Cache headers that distinguish fingerprinted assets from the entry points.** Only
+   `name.<hash>.ext` files are content-addressed; `dotnet.js`, `avalonia.js`, `storage.js` and
+   `sw.js` keep their names across builds. Marking the whole `_framework/` directory `immutable`
+   means a warm browser never re-fetches `dotnet.js` — which carries the boot manifest — so it
+   keeps loading the entire previous bundle and a rebuild appears to do nothing.
+4. **`python3` in the build stage** — the emscripten toolchain that compiles the WebAssembly
+   runtime shells out to it, and the .NET SDK image does not include it. This one fails loudly.
 
 ## Authentication (Corvida.Api + all clients)
 

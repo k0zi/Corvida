@@ -7,10 +7,25 @@
         <WasmBuildNative>true</WasmBuildNative>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <Version>1.0.0</Version>
+
+        <!--
+          The WebAssembly SDK disables System.Text.Json's reflection path by default, which makes
+          every GetFromJsonAsync throw "JsonSerializerIsReflectionDisabled" — the request succeeds,
+          deserialization fails, and every list silently renders empty. The alternative is a
+          JsonSerializerContext threaded through every call site in Corvida.Core, which the desktop
+          and MCP hosts do not need; TrimmerRoots.xml already preserves the model types reflection
+          needs here.
+        -->
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     </PropertyGroup>
 
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Keeps the reflection-resolved views alive through trimming; see the file for why. -->
+        <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
     </ItemGroup>
 
     <ItemGroup>

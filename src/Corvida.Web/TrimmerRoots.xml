@@ -1,0 +1,16 @@
+<!--
+  The published WebAssembly bundle is trimmed, and two things in this app are resolved
+  reflectively, so nothing references them statically and the trimmer removes them:
+
+    * ViewLocator pairs view models with views by type name. Trimmed away, every page renders
+      as "Not Found: Corvida.Views.SomeView".
+    * The HTTP services deserialize into the Corvida.Models types with System.Text.Json's
+      reflection path. Trimmed away, responses come back empty and every list looks empty
+      even though the request succeeded.
+
+  Both assemblies are our own code and small next to Avalonia and the runtime, which stay trimmed.
+-->
+<linker>
+  <assembly fullname="Corvida.Core" preserve="all" />
+  <assembly fullname="Corvida.Shared" preserve="all" />
+</linker>

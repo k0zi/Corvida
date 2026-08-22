@@ -5,17 +5,19 @@ using Corvida.Services;
 namespace Corvida.Web.Services;
 
 /// <summary>
-/// Browser build has no local filesystem, so the server URL is fixed at build time
-/// instead of being loaded from/saved to disk like the desktop <see cref="SettingsService"/>.
+/// The browser build has no local filesystem, so settings are fixed for the lifetime of the page
+/// rather than loaded from and saved to disk like the desktop <see cref="SettingsService"/>.
 /// </summary>
-public class StaticSettingsService : ISettingsService
+/// <remarks>
+/// The API address is resolved once at startup — see <c>Program.ResolveApiBaseUrlAsync</c> — so the
+/// same published bundle works wherever it is served from.
+/// </remarks>
+public class StaticSettingsService(string apiBaseUrl) : ISettingsService
 {
-    private const string CorvidaApiUrl = "http://localhost:5083";
-
     public AppSettings Settings { get; } = new()
     {
         StorageMode = StorageMode.ServerHosted,
-        ServerUrl = CorvidaApiUrl,
+        ServerUrl = apiBaseUrl,
     };
 
     public Task LoadAsync() => Task.CompletedTask;

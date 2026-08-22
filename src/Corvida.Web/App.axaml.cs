@@ -22,6 +22,9 @@ public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
+    /// <summary>Resolved by <see cref="Program"/> before the UI starts.</summary>
+    public static string ApiBaseUrl { get; set; } = string.Empty;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -36,7 +39,7 @@ public partial class App : Application
 
             var services = new ServiceCollection();
 
-            services.AddSingleton<ISettingsService, StaticSettingsService>();
+            services.AddSingleton<ISettingsService>(new StaticSettingsService(ApiBaseUrl));
             services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
             services.AddSingleton<IDialogService, DialogService>();
 

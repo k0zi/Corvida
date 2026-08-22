@@ -25,6 +25,7 @@ Corvida is a Kanban board manager built around a shared core: a desktop client, 
   - [Desktop App](#desktop-app)
   - [REST API](#rest-api)
   - [MCP Server](#mcp-server)
+  - [Web UI](#web-ui)
 - [Authentication](#authentication)
 - [Configuration](#configuration)
 - [Development](#development)
@@ -150,6 +151,51 @@ mcp_servers:
 ```
 
 Then run `hermes chat` to discover and register the tools, or `/reload-mcp` if Hermes is already running.
+
+### Web UI
+
+`install.sh` brings the browser UI up alongside the API:
+
+```
+  Web UI:         http://localhost:8183
+                  https://localhost:8283  (self-signed certificate)
+```
+
+Ports are configurable:
+
+```bash
+./install.sh --web-port 8183 --web-https-port 8283
+./install.sh --no-web          # API and database only
+```
+
+**No configuration is needed.** nginx serves the WebAssembly bundle and proxies `/api`, `/connect`
+and `/hubs` through to the API on the same origin, so there is no CORS to set up and no API address
+to bake in. That same-origin arrangement is also what makes the HTTPS port work — a page served over
+HTTPS is not allowed to call a plain-HTTP API.
+
+The HTTPS certificate is self-signed and generated on first start, so browsers will warn about it.
+It lives in the `webcerts` volume; replace it with a real certificate, or put a TLS-terminating
+proxy in front, for anything beyond local use.
+
+The first build compiles the WebAssembly bundle and takes several minutes.
+
+If you rebuild the image after changing shared UI or model code and pages come up blank or show
+`Not Found: …`, see the WebAssembly notes in `CLAUDE.md` — the browser build needs trimmer roots
+and the System.Text.Json reflection path, and both fail silently without them.
+
+If a rebuild seems to change nothing, force-reload the page once (Ctrl+Shift+R). Builds before this
+note served the whole `_framework/` directory as immutable for a year, so a browser that loaded the
+app back then keeps using its cached copy and never asks for the new one.
+
+To run it from source instead:
+
+```bash
+cd src
+dotnet run --project Corvida.Web/Corvida.Web.csproj    # http://localhost:5180
+```
+
+In that mode the app reads `wwwroot/config.json`, which points at `http://localhost:5083` — the API
+is then a separate origin, which the API's default CORS list already allows.
 
 ## Authentication
 

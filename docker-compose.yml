@@ -36,5 +36,22 @@ services:
       db:
         condition: service_healthy
 
+  web:
+    build:
+      context: src
+      dockerfile: Corvida.Web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8183}:80"
+      - "${WEB_HTTPS_PORT:-8283}:443"
+    environment:
+      # Baked into the self-signed certificate's subject on first start.
+      CORVIDA_WEB_HOST: ${CORVIDA_WEB_HOST:-localhost}
+    volumes:
+      - webcerts:/etc/nginx/certs
+    depends_on:
+      - api
+
 volumes:
   pgdata:
+  webcerts:

@@ -1,0 +1,4 @@
+{
+  "_comment": "Which Corvida API the browser should call. Empty or absent means the page's own origin, which is what the containerised build uses (nginx proxies /api and /hubs).",
+  "apiBaseUrl": "http://localhost:5083"
+}

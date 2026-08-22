@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
-# Corvida.Api installer — sets up Podman (default) or Docker from scratch and
-# runs the REST API + PostgreSQL via Compose, exposed on port 5083.
+# Corvida installer — sets up Podman (default) or Docker from scratch and runs
+# the REST API + PostgreSQL via Compose, exposed on port 5083, plus the browser
+# UI on 8183 (HTTP) and 8283 (HTTPS).
 #
 # Usage:
 #   ./install.sh [--engine podman|docker] [--port 5083] [--dir ~/corvida-api]
+#                [--web-port 8183] [--web-https-port 8283] [--no-web]
 #                [--repo <git-url>] [--branch <name>]
 #
 # Can also be run standalone (e.g. via curl | bash), in which case it clones
@@ -15,6 +17,9 @@ set -euo pipefail
 # ---- defaults ---------------------------------------------------------
 ENGINE="podman"
 PORT="5083"
+WEB_PORT="8183"
+WEB_HTTPS_PORT="8283"
+WITH_WEB="yes"
 REPO_URL="https://github.com/k0zi/Corvida.git"
 BRANCH=""
 INSTALL_DIR=""
@@ -29,11 +34,14 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --engine) ENGINE="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
+    --web-port) WEB_PORT="$2"; shift 2 ;;
+    --web-https-port) WEB_HTTPS_PORT="$2"; shift 2 ;;
+    --no-web) WITH_WEB="no"; shift ;;
     --dir) INSTALL_DIR="$2"; shift 2 ;;
     --repo) REPO_URL="$2"; shift 2 ;;
     --branch) BRANCH="$2"; shift 2 ;;
     -h|--help)
-      sed -n '2,12p' "${BASH_SOURCE[0]}"
+      sed -n '2,14p' "${BASH_SOURCE[0]}"
       exit 0
       ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
@@ -200,10 +208,44 @@ services:
 EOF
 }
 
+# The web container talks to the API over the compose network on its default port, so a custom
+# --port only changes what the host sees. nginx needs telling either way.
+write_web_override() {
+  if [[ "$WITH_WEB" != "yes" ]]; then
+    return
+  fi
+
+  cat > "$INSTALL_DIR/docker-compose.web.yml" <<EOF
+services:
+  web:
+    ports:
+      - "${WEB_PORT}:80"
+      - "${WEB_HTTPS_PORT}:443"
+EOF
+}
+
+# Compose files to use: the base one, plus the port override when there is one, plus the web
+# ports. --no-web drops the whole service with a scale of zero.
+compose_files() {
+  local files=(-f docker-compose.yml)
+  [[ -f "$INSTALL_DIR/docker-compose.override.yml" ]] && files+=(-f docker-compose.override.yml)
+  [[ -f "$INSTALL_DIR/docker-compose.web.yml" ]] && files+=(-f docker-compose.web.yml)
+  printf '%s\n' "${files[@]}"
+}
+
 # ---- run it ---------------------------------------------------------------
 compose_up() {
-  log "Building and starting Corvida.Api + PostgreSQL with $ENGINE compose"
-  (cd "$INSTALL_DIR" && "$ENGINE" compose up -d --build)
+  local -a files
+  mapfile -t files < <(compose_files)
+
+  if [[ "$WITH_WEB" == "yes" ]]; then
+    log "Building and starting Corvida.Api + PostgreSQL + web UI with $ENGINE compose"
+    log "The first build compiles the WebAssembly bundle and can take several minutes"
+    (cd "$INSTALL_DIR" && "$ENGINE" compose "${files[@]}" up -d --build)
+  else
+    log "Building and starting Corvida.Api + PostgreSQL with $ENGINE compose (web UI skipped)"
+    (cd "$INSTALL_DIR" && "$ENGINE" compose "${files[@]}" up -d --build db api)
+  fi
 }
 
 wait_for_api() {
@@ -224,6 +266,28 @@ wait_for_api() {
   log "API is up"
 }
 
+wait_for_web() {
+  if [[ "$WITH_WEB" != "yes" ]]; then
+    return 0
+  fi
+
+  log "Waiting for the web UI to come up on port $WEB_PORT"
+  local tries=60
+  # Probing through the proxy rather than just fetching index.html: nginx serves the static
+  # bundle the moment it starts, so a plain "/" check would pass while the API leg is still
+  # returning 502 and the UI would come up broken.
+  until curl -fsS "http://localhost:${WEB_PORT}/api/auth/status" >/dev/null 2>&1; do
+    tries=$((tries - 1))
+    if [[ $tries -le 0 ]]; then
+      warn "Web UI did not respond within the timeout — check logs with:"
+      warn "  (cd $INSTALL_DIR && $ENGINE compose logs -f web)"
+      return 1
+    fi
+    sleep 2
+  done
+  log "Web UI is up"
+}
+
 # ---- main ---------------------------------------------------------------
 main() {
   log "Installing Corvida.Api with $ENGINE on port $PORT"
@@ -232,18 +296,33 @@ main() {
   fetch_repo
   write_env
   apply_port_override
+  write_web_override
   compose_up
   wait_for_api || true
+  wait_for_web || true
+
+  local web_summary=""
+  if [[ "$WITH_WEB" == "yes" ]]; then
+    web_summary="  Web UI:         http://localhost:${WEB_PORT}
+                  https://localhost:${WEB_HTTPS_PORT}  (self-signed certificate)
+"
+  fi
+
+  # Every compose invocation needs the same file list the installer used.
+  local compose_args=""
+  [[ -f "$INSTALL_DIR/docker-compose.override.yml" ]] && compose_args+=" -f docker-compose.override.yml"
+  [[ -f "$INSTALL_DIR/docker-compose.web.yml" ]] && compose_args+=" -f docker-compose.web.yml"
+  [[ -n "$compose_args" ]] && compose_args=" -f docker-compose.yml${compose_args}"
 
   cat <<SUMMARY
 
-Corvida.Api is running.
+Corvida is running.
 
   API base URL:   http://localhost:${PORT}
-  Install dir:    ${INSTALL_DIR}
+${web_summary}  Install dir:    ${INSTALL_DIR}
   DB password:    see ${INSTALL_DIR}/.env
 
-Point the desktop app / MCP server at it by setting, in
+The web UI needs no configuration — nginx serves it and proxies the API on the same origin.\n\nPoint the desktop app / MCP server at it by setting, in
 {AppData}/Corvida/settings.json:
 
   "StorageMode": 1,
@@ -259,9 +338,9 @@ Turn it on from the desktop app's Settings page, or directly:
 Whoever calls that first becomes the only administrator, so do it now rather than later.
 
 Manage the stack with:
-  (cd ${INSTALL_DIR} && ${ENGINE} compose ps)
-  (cd ${INSTALL_DIR} && ${ENGINE} compose logs -f api)
-  (cd ${INSTALL_DIR} && ${ENGINE} compose down)
+  (cd ${INSTALL_DIR} && ${ENGINE} compose${compose_args} ps)
+  (cd ${INSTALL_DIR} && ${ENGINE} compose${compose_args} logs -f api)
+  (cd ${INSTALL_DIR} && ${ENGINE} compose${compose_args} down)
 SUMMARY
 }
 
