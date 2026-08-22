@@ -105,11 +105,45 @@ public class AgentEndpointTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SaveAgent_Returns404_ForUnknownId()
+    public async Task SaveAgent_CreatesTheAgent_WhenTheIdIsNew()
     {
-        var agent = new Agent { Id = "ghost", Name = "Ghost" };
-        var response = await _client.PutAsJsonAsync("/api/agents/ghost", agent);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        // PUT is an upsert, like the task endpoint and like the local AgentService. The built-in
+        // agent seeder depends on it: it saves at deterministic "builtin-{slug}" ids so repeated
+        // runs cannot duplicate them, and has no other way to choose an id.
+        var agent = new Agent
+        {
+            Id = "builtin-developer",
+            Name = "developer",
+            Description = "Writes code.",
+            Personality = "Pragmatic.",
+            Color = "#1971C2",
+        };
+
+        var response = await _client.PutAsJsonAsync("/api/agents/builtin-developer", agent);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var created = await response.Content.ReadFromJsonAsync<Agent>(JsonOpts);
+        Assert.Equal("builtin-developer", created!.Id);
+        Assert.Equal("developer", created.Name);
+
+        var reloaded = await _client.GetAsync("/api/agents/builtin-developer");
+        Assert.Equal(HttpStatusCode.OK, reloaded.StatusCode);
+    }
+
+    [Fact]
+    public async Task SaveAgent_IsIdempotent_ForTheSameId()
+    {
+        var agent = new Agent { Id = "builtin-architect", Name = "architect", Color = "#F59F00" };
+
+        await _client.PutAsJsonAsync("/api/agents/builtin-architect", agent);
+        agent.Name = "architect-renamed";
+        await _client.PutAsJsonAsync("/api/agents/builtin-architect", agent);
+
+        var all = await _client.GetFromJsonAsync<List<Agent>>("/api/agents", JsonOpts);
+        var matches = all!.Where(a => a.Id == "builtin-architect").ToList();
+
+        Assert.Single(matches);
+        Assert.Equal("architect-renamed", matches[0].Name);
     }
 
     [Fact]

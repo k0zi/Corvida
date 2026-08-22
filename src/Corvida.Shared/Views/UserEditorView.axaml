@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="Corvida.Views.UserEditorView"
+             x:DataType="vm:UserEditorViewModel">
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0 0 0 16">
+            <Button Command="{Binding GoBackCommand}" Classes="Basic">
+                <materialIcons:MaterialIcon Kind="ArrowLeft" Width="18" Height="18"/>
+            </Button>
+            <TextBlock Text="{Binding UserName}" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <ScrollViewer>
+            <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                <StackPanel Spacing="16">
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Display Name" FontWeight="Medium"/>
+                        <TextBox Text="{Binding DisplayName}"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Role" FontWeight="Medium"/>
+                        <TextBlock Text="Administrators manage users and the login switch. Everyone else gets boards, tasks and agents."
+                                   FontSize="12" Opacity="0.6" TextWrapping="Wrap"/>
+                        <ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding Role}"
+                                  HorizontalAlignment="Left" MinWidth="160"/>
+                    </StackPanel>
+
+                    <TextBlock IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="#F03E3E"/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Command="{Binding SaveCommand}" Classes="Flat">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16"/>
+                                <TextBlock Text="Save"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding ResetPasswordCommand}" Classes="Basic">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <materialIcons:MaterialIcon Kind="LockReset" Width="16" Height="16"/>
+                                <TextBlock Text="Reset password"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                </StackPanel>
+            </sukiUi:GlassCard>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

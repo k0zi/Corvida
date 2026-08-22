@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Corvida.Api.Auth;
 using Corvida.Api.Data;
 using Corvida.Api.Hubs;
 using Corvida.Models;
@@ -13,12 +14,12 @@ public static class AgentEndpoints
 
     public static void MapAgentEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/agents");
+        var g = app.MapGroup("/api/agents").RequireAuthorization(Policies.User);
 
         g.MapGet("/", GetAgents);
         g.MapGet("/{id}", GetAgent);
         g.MapPost("/", CreateAgent);
-        g.MapPut("/{id}", SaveAgent);
+        g.MapPut("/{id}", UpsertAgent);
         g.MapDelete("/{id}", DeleteAgent);
     }
 
@@ -50,10 +51,24 @@ public static class AgentEndpoints
         return Results.Created($"/api/agents/{entity.Id}", model);
     }
 
-    static async Task<IResult> SaveAgent(string id, Agent agent, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
+    /// <summary>
+    /// Creates or updates an agent at a caller-chosen id, matching the task endpoint and the local
+    /// <c>AgentService.SaveAgentAsync</c>, which writes the file whether or not it already existed.
+    /// </summary>
+    /// <remarks>
+    /// This used to 404 on an unknown id, which quietly broke built-in agent seeding in
+    /// server-hosted mode: the seeder saves agents at deterministic <c>builtin-{slug}</c> ids so
+    /// re-runs cannot duplicate them, and every one of those saves was rejected.
+    /// </remarks>
+    static async Task<IResult> UpsertAgent(string id, Agent agent, AppDbContext db, IHubContext<KanbanHub, IKanbanHubClient> hub)
     {
         var entity = await db.Agents.FirstOrDefaultAsync(a => a.Id == id);
-        if (entity is null) return Results.NotFound();
+
+        if (entity is null)
+        {
+            entity = new AgentEntity { Id = id };
+            db.Agents.Add(entity);
+        }
 
         entity.Name = agent.Name;
         entity.Description = agent.Description;

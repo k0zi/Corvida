@@ -25,6 +25,7 @@ Corvida is a Kanban board manager built around a shared core: a desktop client, 
   - [Desktop App](#desktop-app)
   - [REST API](#rest-api)
   - [MCP Server](#mcp-server)
+- [Authentication](#authentication)
 - [Configuration](#configuration)
 - [Development](#development)
 - [Data Storage](#data-storage)
@@ -150,6 +151,123 @@ mcp_servers:
 
 Then run `hermes chat` to discover and register the tools, or `/reload-mcp` if Hermes is already running.
 
+## Authentication
+
+**Login is off by default.** A fresh install behaves exactly as it always has: anyone who can reach
+the API has full access. Authentication is a switch you turn on, and turning it off again wipes the
+user store.
+
+### Turning it on
+
+From the desktop app's **Settings** page, or directly:
+
+```bash
+curl -X POST http://localhost:5083/api/auth/enable \
+  -H 'Content-Type: application/json' \
+  -d '{"Email":"you@example.com","Password":"choose-a-strong-one","DisplayName":"Admin"}'
+```
+
+This creates the first administrator and closes the gate in one step. **Whoever calls it first
+becomes the only administrator**, so do it immediately after installing — while login is off, the
+endpoint has no credentials to check. It is rate-limited (3 attempts / 5 minutes per IP) and only
+reachable from the origins listed in `Auth:AllowedOrigins`.
+
+Clients then sign in at the token endpoint:
+
+```bash
+curl -X POST http://localhost:5083/connect/token \
+  -d 'grant_type=password&username=you@example.com&password=...&scope=offline_access'
+```
+
+### Roles
+
+| Role | Can do |
+|---|---|
+| `Admin` | Everything, plus user management and the auth switch |
+| `User` | Boards, tasks, agents |
+
+Administrators manage accounts from the desktop app's **Users** page, which only appears when login
+is required and the signed-in user is an administrator.
+
+### The MCP server
+
+The MCP server runs over stdio and cannot show a login screen, so it authenticates with a key
+instead. Generate one on the Settings page under **Access Keys**, then press *Use for the MCP
+server* to write it into `settings.json` — the same file the desktop app already shares with it.
+Keys can be revoked at any time, and the raw value is shown only once.
+
+
+### Turning it off
+
+Requires an administrator's own password and an explicit confirmation phrase:
+
+```bash
+curl -X POST http://localhost:5083/api/auth/disable \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"Password":"...","Confirm":"DELETE ALL USERS"}'
+```
+
+This **permanently deletes every account, role assignment and token**, rotates the signing keys (so
+tokens issued earlier stop working immediately), disconnects live clients, and returns the system to
+the open default.
+
+### Locked out?
+
+There is no password-reset email and no recovery endpoint. If the administrator password is lost,
+reopen the gate directly in the database and start over:
+
+```bash
+docker compose exec db psql -U postgres -d corvida \
+  -c 'UPDATE auth."SystemSettings" SET "AuthRequired" = false WHERE "Id" = 1;'
+docker compose restart api
+```
+
+The API is then open again, and `POST /api/auth/enable` will refuse until you also clear the old
+accounts (`TRUNCATE auth."AspNetUsers" CASCADE;`).
+
+### Upgrading an existing database
+
+The API applies its migrations on startup. If yours was created while the migration files were
+missing from the repository, its `__EFMigrationsHistory` can lag behind the schema it actually has,
+and startup then fails with something like:
+
+```
+column "CellOrdersJson" of relation "Boards" already exists
+```
+
+That means the columns are present but the corresponding rows were never recorded. Check what is
+recorded against what exists:
+
+```bash
+docker compose exec db psql -U postgres -d corvida \
+  -c 'SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY 1;' -c '\d public."Boards"'
+```
+
+If the schema already matches the newest migration, record the missing rows rather than re-running
+them — this changes no data:
+
+```bash
+docker compose exec db psql -U postgres -d corvida -c '
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion") VALUES
+  (''20260804164707_AddUsersAndAssignment'', ''10.0.10''),
+  (''20260804175624_RenameUsersToAgents'',   ''10.0.10''),
+  (''20260806062534_AddAgentDescription'',   ''10.0.10'')
+ON CONFLICT ("MigrationId") DO NOTHING;'
+docker compose restart api
+```
+
+Only stamp a migration whose effects you have confirmed are already in the schema. Do **not**
+`docker compose down -v` to work around this — that deletes every board.
+
+### Security notes
+
+- The default deployment serves **plain HTTP**. Bearer tokens — and, because the desktop app uses
+  the password grant, passwords themselves — travel unencrypted. Put a TLS-terminating reverse proxy
+  in front of the API before exposing it beyond localhost, then set `Auth__AllowInsecureTransport=false`.
+- `Auth__AllowedOrigins__0` must name wherever `Corvida.Web` is served from; browsers on any other
+  origin are refused.
+- Signing keys are stored in the database, so tokens survive `docker compose restart`.
+
 ## Configuration
 
 App settings live at `{AppData}/Corvida/settings.json`, shared by the desktop app and MCP server:
@@ -158,7 +276,8 @@ App settings live at `{AppData}/Corvida/settings.json`, shared by the desktop ap
 {
   "DataPath": "~/CorvidaData",
   "StorageMode": 0,
-  "ServerUrl": "http://localhost:5083/"
+  "ServerUrl": "http://localhost:5083/",
+  "ApiKey": null
 }
 ```
 
@@ -167,6 +286,7 @@ App settings live at `{AppData}/Corvida/settings.json`, shared by the desktop ap
 | `DataPath` | Where local boards/tasks are stored (`StorageMode: LocalFolder` only) |
 | `StorageMode` | `0` = `LocalFolder`, `1` = `ServerHosted` |
 | `ServerUrl` | Base URL of `Corvida.Api` (`StorageMode: ServerHosted` only) |
+| `ApiKey` | Access key for the MCP server, generated on the Settings page. Only needed once login is required. Stored in plain text — treat this file as a credential. |
 
 ## Development
 

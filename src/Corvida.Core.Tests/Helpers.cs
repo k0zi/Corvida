@@ -58,3 +58,19 @@ internal sealed class FakeHttpClientFactory : IHttpClientFactory
     public HttpClient CreateClient(string name) =>
         new HttpClient(_handler, disposeHandler: false);
 }
+
+/// <summary>An <see cref="ITokenProvider"/> that is permanently signed out.</summary>
+internal sealed class SignedOutTokenProvider : ITokenProvider
+{
+    public event Action? SignedOut;
+
+    public ValueTask<string?> GetAccessTokenAsync(CancellationToken ct = default) => new((string?)null);
+    public ValueTask<bool> TryRefreshAsync(CancellationToken ct = default) => new(false);
+    public ValueTask SignInAsync(StoredTokens tokens) => ValueTask.CompletedTask;
+
+    public ValueTask SignOutAsync()
+    {
+        SignedOut?.Invoke();
+        return ValueTask.CompletedTask;
+    }
+}

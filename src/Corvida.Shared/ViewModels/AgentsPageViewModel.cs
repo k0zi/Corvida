@@ -28,8 +28,20 @@ public partial class AgentsPageViewModel : PageBase
         _navStack.Push(_listVm);
         CurrentViewModel = _listVm;
 
+        // In local mode the store is readable immediately. In server mode the host calls
+        // RefreshAsync once it can reach the API — see the note there.
         _ = _listVm.LoadAsync();
     }
+
+    /// <summary>
+    /// Reloads the list.
+    /// </summary>
+    /// <remarks>
+    /// The constructor-time load runs before the host has finished seeding the built-in agents
+    /// (and, in server mode, before it knows whether a token is needed), so it can legitimately
+    /// come back empty. The host calls this afterwards.
+    /// </remarks>
+    public System.Threading.Tasks.Task RefreshAsync() => _listVm.LoadAsync();
 
     private void NavigateTo(ViewModelBase vm)
     {

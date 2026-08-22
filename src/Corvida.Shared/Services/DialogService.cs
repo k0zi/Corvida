@@ -20,6 +20,9 @@ public class DialogService : IDialogService
     public Task<string?> ShowInputDialogAsync(string title, string prompt, string placeholder = "") =>
         ShowAsync<string?>(title, complete => new InputDialogContent(prompt, placeholder, complete), null);
 
+    public Task<string?> ShowPasswordDialogAsync(string title, string prompt, string confirmLabel = "Confirm") =>
+        ShowAsync<string?>(title, complete => new PasswordDialogContent(prompt, confirmLabel, complete), null);
+
     public Task<bool> ShowConfirmDialogAsync(string title, string message) =>
         ShowAsync<bool>(title, complete => new ConfirmDialogContent(message, complete), false);
 

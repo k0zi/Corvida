@@ -24,14 +24,26 @@
         <vm:MainWindowViewModel />
     </Design.DataContext>
     <sukiUi:SukiWindow.RightWindowTitleBarControls>
-        <Button Command="{Binding ToggleThemeCommand}" Classes="Basic">
-            <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
-        </Button>
+        <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="{Binding CurrentUser.DisplayName}" VerticalAlignment="Center"
+                       Opacity="0.7" FontSize="12" Margin="0 0 4 0"
+                       IsVisible="{Binding CurrentUser, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+            <Button Command="{Binding SignOutCommand}" Classes="Basic"
+                    ToolTip.Tip="Sign out"
+                    IsVisible="{Binding AuthRequired}">
+                <materialIcons:MaterialIcon Kind="Logout" />
+            </Button>
+            <Button Command="{Binding ToggleThemeCommand}" Classes="Basic">
+                <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
+            </Button>
+        </StackPanel>
     </sukiUi:SukiWindow.RightWindowTitleBarControls>
     <sukiUi:SukiWindow.Hosts>
         <sukiUi:SukiDialogHost Manager="{Binding DialogManager}" />
     </sukiUi:SukiWindow.Hosts>
+    <Panel>
     <sukiUi:SukiSideMenu IsSearchEnabled="True"
+                         IsVisible="{Binding IsSignedIn}"
                          ItemsSource="{Binding Pages}"
                          SelectedItem="{Binding ActivePage, Mode=TwoWay}">
         <sukiUi:SukiSideMenu.HeaderContent>
@@ -50,4 +62,8 @@
             </DataTemplate>
         </sukiUi:SukiSideMenu.ItemTemplate>
     </sukiUi:SukiSideMenu>
+
+        <!-- Modal gate, not a dialog: nothing behind it is reachable until sign-in succeeds. -->
+        <ContentControl Content="{Binding Login}" IsVisible="{Binding !IsSignedIn}"/>
+    </Panel>
 </sukiUi:SukiWindow>

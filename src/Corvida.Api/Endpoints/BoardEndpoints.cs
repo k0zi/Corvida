@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Corvida.Api.Auth;
 using Corvida.Api.Data;
 using Corvida.Api.Hubs;
 using Corvida.Models;
@@ -13,7 +14,7 @@ public static class BoardEndpoints
 
     public static void MapBoardEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/boards");
+        var g = app.MapGroup("/api/boards").RequireAuthorization(Policies.User);
 
         g.MapGet("/", GetBoards);
         g.MapGet("/archived", GetArchivedBoards);

@@ -14,7 +14,9 @@
             <sukiUi:SukiDialogHost Manager="{Binding DialogManager}" />
         </sukiUi:SukiMainHost.Hosts>
 
+        <Panel>
         <sukiUi:SukiSideMenu IsSearchEnabled="True"
+                             IsVisible="{Binding IsSignedIn}"
                              ItemsSource="{Binding Pages}"
                              SelectedItem="{Binding ActivePage, Mode=TwoWay}">
             <sukiUi:SukiSideMenu.HeaderContent>
@@ -38,5 +40,9 @@
                 </DataTemplate>
             </sukiUi:SukiSideMenu.ItemTemplate>
         </sukiUi:SukiSideMenu>
+
+            <!-- The browser host has no second window, so the gate has to be an overlay here too. -->
+            <ContentControl Content="{Binding Login}" IsVisible="{Binding !IsSignedIn}"/>
+        </Panel>
     </sukiUi:SukiMainHost>
 </UserControl>

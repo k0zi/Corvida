@@ -21,7 +21,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 
@@ -33,7 +33,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 
@@ -47,7 +47,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 
@@ -64,7 +64,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 
@@ -77,7 +77,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 
@@ -90,7 +90,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 
@@ -104,7 +104,7 @@ public class HttpBoardService(IHttpClientFactory factory, ISettingsService setti
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            throw new InvalidOperationException($"Cannot reach Corvida server at {Base}. Check your Server URL setting.", ex);
+            throw HttpErrors.Translate(ex, Base);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,7 +17,10 @@ public partial class SettingsViewModel : PageBase
     private readonly ISkillInstallerService _skillInstallerService;
     private readonly IAgentInstallerService _agentInstallerService;
     private readonly IMcpInstallerService _mcpInstallerService;
+    private readonly IAuthClient _authClient;
+    private readonly IApiKeyService _apiKeyService;
     private Func<Task>? _onSaved;
+    private Func<Task>? _onAuthChanged;
 
     [ObservableProperty] private string _dataPath = string.Empty;
     [ObservableProperty] private string _serverUrl = string.Empty;
@@ -45,12 +49,22 @@ public partial class SettingsViewModel : PageBase
     [ObservableProperty] private bool _opencodeMcpInstalled;
     [ObservableProperty] private bool _hermesMcpInstalled;
 
+    [ObservableProperty] private ObservableCollection<ApiKeyInfo> _apiKeys = new();
+    [ObservableProperty] private bool _canManageApiKeys;
+    [ObservableProperty] private string? _newApiKey;
+
+    [ObservableProperty] private bool _authRequired;
+    [ObservableProperty] private bool _authStateKnown;
+    [ObservableProperty] private string? _authMessage;
+
     public override string MenuTitle => "Settings";
     public override MaterialIconKind Icon => MaterialIconKind.Cog;
     public override int DisplayOrder => 99;
 
-    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService)
+    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService, IAuthClient authClient, IApiKeyService apiKeyService)
     {
+        _authClient = authClient;
+        _apiKeyService = apiKeyService;
         _settingsService = settingsService;
         _dialogService = dialogService;
         _exportService = exportService;

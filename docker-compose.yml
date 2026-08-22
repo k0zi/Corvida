@@ -26,6 +26,12 @@ services:
       ASPNETCORE_HTTP_PORTS: "5083"
       ConnectionStrings__CorvidaApi: >-
         Host=db;Database=corvida;Username=postgres;Password=${POSTGRES_PASSWORD:-changeme}
+      # Browser origins allowed to call the API. Must list wherever Corvida.Web is served from;
+      # anything not listed is refused by CORS.
+      Auth__AllowedOrigins__0: ${CORVIDA_WEB_ORIGIN:-http://localhost:5180}
+      # This stack serves plain HTTP, so OpenIddict's transport-security check has to be relaxed.
+      # Put a TLS-terminating reverse proxy in front before exposing it beyond localhost.
+      Auth__AllowInsecureTransport: "true"
     depends_on:
       db:
         condition: service_healthy

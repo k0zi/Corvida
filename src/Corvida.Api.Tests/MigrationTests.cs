@@ -1,6 +1,9 @@
 using Corvida.Api.Data;
 using Corvida.Api.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Corvida.Api.Tests;
 
@@ -175,5 +178,40 @@ public class MigrationTests(PostgresContainerFixture db)
         var task = await readCtx.Tasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == "mig-task-2");
 
         Assert.Null(task);
+    }
+
+    // The migrations in this folder were deleted once (commit 4ffecef) while Program.cs kept
+    // calling MigrateAsync(), leaving the API unable to create its schema on a fresh database.
+    // These two guards make that class of failure loud instead of silent.
+
+    [Fact]
+    public void MigrationsAssembly_IsNotEmpty()
+    {
+        using var ctx = CreateContext();
+
+        Assert.NotEmpty(ctx.Database.GetMigrations());
+    }
+
+    [Fact]
+    public void Model_MatchesSnapshot()
+    {
+        using var ctx = CreateContext();
+        var differ = ctx.GetService<IMigrationsModelDiffer>();
+        var snapshot = ctx.GetService<IMigrationsAssembly>().ModelSnapshot;
+
+        Assert.NotNull(snapshot);
+
+        // The snapshot's model is not finalized, so it has no relational model until it is
+        // run through the same runtime initializer EF uses internally.
+        var snapshotModel = snapshot.Model;
+        if (snapshotModel is IMutableModel mutable)
+            snapshotModel = mutable.FinalizeModel();
+        snapshotModel = ctx.GetService<IModelRuntimeInitializer>().Initialize(snapshotModel, designTime: true);
+
+        var differences = differ.GetDifferences(
+            snapshotModel.GetRelationalModel(),
+            ctx.GetService<IDesignTimeModel>().Model.GetRelationalModel());
+
+        Assert.Empty(differences);
     }
 }

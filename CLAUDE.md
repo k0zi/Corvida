@@ -24,7 +24,7 @@ docker compose up --build           # API + PostgreSQL; API exposed on :5083
 
 ## Solution Structure
 
-Eight projects in `src/Corvida.sln`:
+Ten projects in `src/Corvida.sln`:
 
 | Project | Type | Role |
 |---|---|---|
@@ -35,7 +35,9 @@ Eight projects in `src/Corvida.sln`:
 | `Corvida.AppHost` | .NET Aspire AppHost | Orchestrates `Corvida.Api` + PostgreSQL for local dev |
 | `Corvida.ServiceDefaults` | Aspire shared lib | OpenTelemetry, resilience, service-discovery defaults for `Corvida.Api` |
 | `Corvida.Core.Tests` | xUnit test project | Unit tests for `Corvida.Core` |
-| `Corvida.Api.Tests` | xUnit test project | Integration tests for `Corvida.Api` (EF Core migrations, board/task/agent endpoints) |
+| `Corvida.Shared` | Avalonia class library | UI shared by the desktop and browser hosts: ViewModels, Views, dialogs, converters, `ViewLocator` |
+| `Corvida.Web` | Avalonia Browser (WASM) | The same UI running in a browser; references `Corvida.Shared` only |
+| `Corvida.Api.Tests` | xUnit test project | Integration tests for `Corvida.Api` (EF Core migrations, board/task/agent endpoints, authentication) |
 
 Both `Corvida` and `Corvida.Mcp` reference `Corvida.Core` and share the same service layer. `Corvida.Api` also references `Corvida.Core` and `Corvida.ServiceDefaults`.
 
@@ -127,7 +129,7 @@ Each list/editor pair follows the same shape: the list `ViewModel` takes an `Act
 
 ## REST API (Corvida.Api)
 
-ASP.NET Core 10 with EF Core + Npgsql. Connection string: `DefaultConnection` in config.
+ASP.NET Core 10 with EF Core + Npgsql. Connection string: `CorvidaApi` in config (injected by Aspire or `ConnectionStrings__CorvidaApi` in docker-compose; there is no value in `appsettings.json`).
 
 Endpoints:
 - `GET/POST /api/boards` — list active boards / create board
@@ -141,6 +143,75 @@ Endpoints:
 Board groups are stored as JSONB in `BoardEntity.GroupsJson`. Tasks are stored in a `TaskEntity` table with a cascade-delete FK to boards. Agents are stored in an `AgentEntity` table, independent of any board.
 
 **Realtime**: `KanbanHub` (SignalR, mapped at `/hubs/kanban`) broadcasts `BoardChanged`/`BoardDeleted`/`TaskChanged`/`TaskDeleted`/`AgentChanged`/`AgentDeleted` to connected clients whenever an endpoint mutates data, so every endpoint handler that changes state also calls the corresponding hub method via `IHubContext<KanbanHub, IKanbanHubClient>`.
+
+## Authentication (Corvida.Api + all clients)
+
+Authentication is **switchable at runtime** and **off by default**: a fresh install behaves exactly
+as the API did before it existed. The switch is a single row in `auth.SystemSettings`.
+
+### The gate
+
+`CorvidaAccessHandler` (in `Corvida.Api/Auth/`) is the one place that decides. Authorization
+policies are built once at startup, so the flag cannot live in a requirement — instead the handler
+reads `IAuthGateState`, which caches the flag (3s TTL while open, 30s while closed; the asymmetry is
+deliberate, since a stale "open" is a hole and a stale "closed" is only a 401) and fails closed if
+the database is unreachable.
+
+Every endpoint group carries `.RequireAuthorization(Policies.User)`, the hub included, and a
+`FallbackPolicy` gates anything that forgets to. **Never use a bare `.RequireAuthorization()`** — it
+adds `DenyAnonymousAuthorizationRequirement`, which cannot be satisfied while the gate is open.
+
+### Identity and tokens
+
+- **OpenIddict 7.6** is the authorization server, in-process, validating its own tokens via
+  `UseLocalServer()`. Grants: `password` and `refresh_token`.
+- **ASP.NET Core Identity** provides the user store, registered via `AddIdentityCore` +
+  `AddSignInManager` — **without `AddDefaultTokenProviders()`**, so DataProtection never enters the
+  picture. Two rules follow, and the code depends on them: use `CheckPasswordSignInAsync` (never
+  `PasswordSignInAsync`, which needs the two-factor ticket path) and change passwords with
+  `ChangePasswordAsync` / `RemovePassword`+`AddPassword` (never `Generate*TokenAsync`).
+- **Claim destinations** are the sharp edge: a claim with no destination is silently dropped from
+  the issued token. `TokenEndpoints.GetDestinations` sends everything to the access token except the
+  security stamp. The identity is built with `nameType: Claims.Name, roleType: Claims.Role` to match
+  what the validation stack expects — get that wrong and `User.IsInRole` is quietly false.
+- **Signing keys** live in `auth.SigningKeys` (`ISigningKeyProvider`), not in the machine X.509
+  store, so tokens survive a container restart. Disabling auth **rotates them**, which is what
+  actually invalidates outstanding access tokens — they are self-contained JWTs, so truncating the
+  token table does nothing to them.
+
+### Schema
+
+Identity, OpenIddict and the auth tables live in a separate `AuthDbContext` under the `auth` schema,
+in the same database. `UseOpenIddict()` is applied in `OnModelCreating`, **not** on
+`DbContextOptionsBuilder` — the options-builder overload works by replacing `IModelCustomizer`, which
+`ApiWebApplicationFactory` would silently drop when it repoints the context at the test container.
+Keeping every auth table in one schema is what lets the "disable" wipe derive its `TRUNCATE` list
+from `db.Model.GetEntityTypes()` instead of a hand-maintained list that would rot.
+
+### Clients
+
+All three hosts register the same pieces from `Corvida.Core`:
+
+```csharp
+services.AddSingleton<ITokenStore, InMemoryTokenStore>();   // MCP uses ApiKeyTokenProvider instead
+services.AddSingleton<IAuthClient, AuthClient>();
+services.AddSingleton<ITokenProvider, TokenProvider>();
+services.AddTransient<AuthMessageHandler>();
+services.AddHttpClient("CorvidaApi").AddHttpMessageHandler<AuthMessageHandler>();
+```
+
+Registering the handler on the named client covers `HttpBoardService`/`HttpTaskService`/
+`HttpAgentService` at once — each resolves its `HttpClient` per call, so none of them needed
+changing. `TokenProvider` refreshes **single-flight** behind a `SemaphoreSlim`: OpenIddict rotates
+refresh tokens and detects reuse, so concurrent redemptions would revoke the whole chain.
+
+The login screen is an overlay inside the existing shell (`MainWindowViewModel.Login`), not a second
+window — `Corvida.Web` runs under `ISingleViewApplicationLifetime`, where a second window is
+impossible. Both `MainWindow.axaml` and `MainView.axaml` layer it over their side menu.
+
+Anything that calls the API at startup — `BuiltInAgentSeeder`, the realtime connection, page loads —
+runs from `MainWindowViewModel.SignedIn`, not at construction: behind a closed gate it would 401,
+and the seeder in particular swallows failures and never retries.
 
 ## MCP Server (Corvida.Mcp)
 

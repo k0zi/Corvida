@@ -14,6 +14,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SukiUI.Dialogs;
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Corvida.Web;
 
@@ -43,11 +44,22 @@ public partial class App : Application
             services.AddSingleton<ITaskService, HttpTaskService>();
             services.AddSingleton<IAgentService, HttpAgentService>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
-            services.AddHttpClient("CorvidaApi");
+
+            // In-memory only: the browser build has no persistence, and a refresh token in
+            // localStorage would be readable by any script that got injected into the page.
+            // The cost is that reloading the tab signs the user out.
+            services.AddSingleton<ITokenStore, InMemoryTokenStore>();
+            services.AddSingleton<IAuthClient, AuthClient>();
+            services.AddSingleton<ITokenProvider, TokenProvider>();
+            services.AddTransient<AuthMessageHandler>();
+            services.AddSingleton<IUserAdminService, HttpUserAdminService>();
+            services.AddSingleton<IApiKeyService, HttpApiKeyService>();
+            services.AddHttpClient("CorvidaApi").AddHttpMessageHandler<AuthMessageHandler>();
 
             // Pages
             services.AddTransient<PageBase, BoardsPageViewModel>();
             services.AddTransient<PageBase, AgentsPageViewModel>();
+            services.AddTransient<PageBase, UsersPageViewModel>();
             services.AddTransient<PageBase, ArchivedBoardsViewModel>();
 
             services.AddSingleton<MainWindowViewModel>();
@@ -55,8 +67,10 @@ public partial class App : Application
             Services = services.BuildServiceProvider();
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
-            var boardsPage = mainVm.Pages.OfType<BoardsPageViewModel>().First();
-            var archivedPage = mainVm.Pages.OfType<ArchivedBoardsViewModel>().First();
+            var boardsPage = mainVm.AllPages.OfType<BoardsPageViewModel>().First();
+            var agentsPage = mainVm.AllPages.OfType<AgentsPageViewModel>().First();
+            var archivedPage = mainVm.AllPages.OfType<ArchivedBoardsViewModel>().First();
+            var usersPage = mainVm.AllPages.OfType<UsersPageViewModel>().First();
             archivedPage.SetOnViewBoard(board =>
             {
                 mainVm.ActivePage = boardsPage;
@@ -76,7 +90,25 @@ public partial class App : Application
                 Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new AgentChangedMessage(agent)));
             realtime.AgentDeleted += agentId =>
                 Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new AgentDeletedMessage(agentId)));
-            _ = realtime.StartAsync();
+            realtime.AuthStateChanged += required =>
+                Dispatcher.UIThread.Post(() => _ = mainVm.OnAuthStateChangedAsync(required));
+
+            async Task StartAuthenticatedWorkAsync()
+            {
+                await agentsPage.RefreshAsync();
+                await realtime.RestartAsync();
+                if (mainVm.CurrentUser?.IsAdmin == true) await usersPage.RefreshAsync();
+                await boardsPage.RefreshAsync();
+            }
+
+            mainVm.SignedIn += StartAuthenticatedWorkAsync;
+            mainVm.SignedOutOfServer += () => realtime.StopAsync();
+
+            _ = Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await mainVm.InitializeAsync();
+                if (mainVm.IsSignedIn) await StartAuthenticatedWorkAsync();
+            });
 
             singleView.MainView = new MainView
             {

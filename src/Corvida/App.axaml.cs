@@ -60,13 +60,25 @@ public partial class App : Application
             services.AddSingleton<IAgentInstallerService, AgentInstallerService>();
             services.AddSingleton<IMcpInstallerService, McpInstallerService>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
-            services.AddHttpClient("CorvidaApi");
+
+            // Authentication. The token lives in memory only, so closing the app signs out.
+            services.AddSingleton<ITokenStore, InMemoryTokenStore>();
+            services.AddSingleton<IAuthClient, AuthClient>();
+            services.AddSingleton<ITokenProvider, TokenProvider>();
+            services.AddTransient<AuthMessageHandler>();
+
+            // Registering the handler here covers every Http*Service at once: each resolves its
+            // HttpClient from the factory per call, so none of them needed changing.
+            services.AddSingleton<IUserAdminService, HttpUserAdminService>();
+            services.AddSingleton<IApiKeyService, HttpApiKeyService>();
+            services.AddHttpClient("CorvidaApi").AddHttpMessageHandler<AuthMessageHandler>();
 
             // Pages
             services.AddTransient<PageBase, BoardsPageViewModel>();
             services.AddTransient<PageBase, AgentsPageViewModel>();
             services.AddTransient<PageBase, SkillsPageViewModel>();
             services.AddTransient<PageBase, ArchivedBoardsViewModel>();
+            services.AddTransient<PageBase, UsersPageViewModel>();
             services.AddTransient<PageBase, SettingsViewModel>();
 
             // Register main view model
@@ -77,28 +89,26 @@ public partial class App : Application
             // Load settings before showing window
             Services.GetRequiredService<ISettingsService>().LoadAsync().GetAwaiter().GetResult();
             SkillPaths.EnsureSeeded();
-            try
-            {
-                // Task.Run so the real async I/O inside runs off the Avalonia UI thread's
-                // SynchronizationContext — blocking on it directly here would deadlock as soon as
-                // an await genuinely suspends (its continuation would need the UI thread to pump
-                // the dispatcher, but that thread is the one stuck in GetResult()).
-                Task.Run(() => BuiltInAgentSeeder.EnsureSeededAsync(Services.GetRequiredService<IAgentService>()))
-                    .GetAwaiter().GetResult();
-            }
-            catch
-            {
-                // Best-effort default content; user can still create agents manually if the server is unreachable.
-            }
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
-            var boardsPage = mainVm.Pages.OfType<BoardsPageViewModel>().First();
-            var archivedPage = mainVm.Pages.OfType<ArchivedBoardsViewModel>().First();
-            var settingsPage = mainVm.Pages.OfType<SettingsViewModel>().First();
+            var boardsPage = mainVm.AllPages.OfType<BoardsPageViewModel>().First();
+            var agentsPage = mainVm.AllPages.OfType<AgentsPageViewModel>().First();
+            var archivedPage = mainVm.AllPages.OfType<ArchivedBoardsViewModel>().First();
+            var usersPage = mainVm.AllPages.OfType<UsersPageViewModel>().First();
+            var settingsPage = mainVm.AllPages.OfType<SettingsViewModel>().First();
             settingsPage.SetOnSaved(async () =>
             {
                 mainVm.ActivePage = boardsPage;
+                await settingsPage.RefreshAuthStateAsync();
                 await boardsPage.RefreshAsync();
+            });
+
+            // Turning the switch on or off from Settings changes what the whole shell should show,
+            // so re-run the same gate check the app does at startup.
+            settingsPage.SetOnAuthChanged(async () =>
+            {
+                await settingsPage.RefreshAuthStateAsync();
+                await mainVm.InitializeAsync();
             });
             archivedPage.SetOnViewBoard(board =>
             {
@@ -119,7 +129,41 @@ public partial class App : Application
                 Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new AgentChangedMessage(agent)));
             realtime.AgentDeleted += agentId =>
                 Dispatcher.UIThread.Post(() => WeakReferenceMessenger.Default.Send(new AgentDeletedMessage(agentId)));
-            _ = realtime.StartAsync();
+            realtime.AuthStateChanged += required =>
+                Dispatcher.UIThread.Post(() => _ = mainVm.OnAuthStateChangedAsync(required));
+
+            // Seeding and the realtime connection both call the API, so they must wait until we
+            // know whether a token is needed — behind a closed gate they would 401, and the
+            // seeder in particular would swallow that and never retry.
+            async Task StartAuthenticatedWorkAsync()
+            {
+                try
+                {
+                    await BuiltInAgentSeeder.EnsureSeededAsync(Services.GetRequiredService<IAgentService>());
+                }
+                catch
+                {
+                    // Best-effort default content; the user can still create agents manually.
+                }
+
+                await agentsPage.RefreshAsync();
+                await realtime.RestartAsync();
+                if (mainVm.CurrentUser?.IsAdmin == true) await usersPage.RefreshAsync();
+                await settingsPage.RefreshAuthStateAsync();
+                await boardsPage.RefreshAsync();
+            }
+
+            mainVm.SignedIn += StartAuthenticatedWorkAsync;
+            mainVm.SignedOutOfServer += () => realtime.StopAsync();
+
+            _ = Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                await mainVm.InitializeAsync();
+
+                // Already through the gate (auth is off, or local storage): do the startup work now.
+                if (mainVm.IsSignedIn) await StartAuthenticatedWorkAsync();
+            });
+
             desktop.ShutdownRequested += (_, _) => { _ = realtime.StopAsync(); };
 
             desktop.MainWindow = new MainWindow

@@ -1,3 +1,4 @@
+using Corvida.Api.Auth;
 using Corvida.Api.Data;
 using Corvida.Api.Hubs;
 using Corvida.Models;
@@ -10,7 +11,7 @@ public static class TaskEndpoints
 {
     public static void MapTaskEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/boards/{boardId}/tasks");
+        var g = app.MapGroup("/api/boards/{boardId}/tasks").RequireAuthorization(Policies.User);
 
         g.MapGet("/{taskId}", GetTask);
         g.MapPut("/{taskId}", UpsertTask);

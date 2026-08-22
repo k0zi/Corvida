@@ -209,7 +209,10 @@ compose_up() {
 wait_for_api() {
   log "Waiting for the API to come up on port $PORT"
   local tries=60
-  until curl -fsS "http://localhost:${PORT}/api/boards" >/dev/null 2>&1; do
+  # /api/auth/status rather than /api/boards: it is always anonymous, so the probe keeps
+  # working once login is switched on (curl -f treats the 401 as a failure and would loop
+  # here until the timeout). /health is not an option — it is only mapped in Development.
+  until curl -fsS "http://localhost:${PORT}/api/auth/status" >/dev/null 2>&1; do
     tries=$((tries - 1))
     if [[ $tries -le 0 ]]; then
       warn "API did not respond within the timeout — check logs with:"
@@ -245,6 +248,15 @@ Point the desktop app / MCP server at it by setting, in
 
   "StorageMode": 1,
   "ServerUrl": "http://localhost:${PORT}/"
+
+LOGIN IS OFF BY DEFAULT — anyone who can reach port ${PORT} has full access.
+Turn it on from the desktop app's Settings page, or directly:
+
+  curl -X POST http://localhost:${PORT}/api/auth/enable \\
+    -H 'Content-Type: application/json' \\
+    -d '{"Email":"you@example.com","Password":"choose-a-strong-one","DisplayName":"Admin"}'
+
+Whoever calls that first becomes the only administrator, so do it now rather than later.
 
 Manage the stack with:
   (cd ${INSTALL_DIR} && ${ENGINE} compose ps)
