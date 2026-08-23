@@ -31,7 +31,7 @@ public static class SkillMarkdownSerializer
                     var colon = line.IndexOf(':');
                     if (colon < 0) continue;
                     var key = line[..colon].Trim();
-                    var value = line[(colon + 1)..].Trim();
+                    var value = YamlScalar.Decode(line[(colon + 1)..]);
                     switch (key)
                     {
                         case "name": name = value; break;
@@ -53,8 +53,8 @@ public static class SkillMarkdownSerializer
     {
         var sb = new StringBuilder();
         sb.AppendLine("---");
-        sb.AppendLine($"name: {name}");
-        sb.AppendLine($"description: {description}");
+        sb.AppendLine($"name: {YamlScalar.Encode(name)}");
+        sb.AppendLine($"description: {YamlScalar.Encode(description)}");
         sb.AppendLine("---");
         sb.AppendLine();
         sb.Append(body);

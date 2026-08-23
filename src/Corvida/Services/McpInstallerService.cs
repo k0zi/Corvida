@@ -21,7 +21,7 @@ public class McpInstallerService : IMcpInstallerService
 
     public bool IsInstalled(McpTarget target, string configPath)
     {
-        var path = ExpandPath(configPath);
+        var path = PathUtil.Expand(configPath);
         if (!File.Exists(path)) return false;
 
         try
@@ -42,7 +42,7 @@ public class McpInstallerService : IMcpInstallerService
 
     public void Install(McpTarget target, string configPath, string mcpProjectPath)
     {
-        var path = ExpandPath(configPath);
+        var path = PathUtil.Expand(configPath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         switch (target)
@@ -78,7 +78,7 @@ public class McpInstallerService : IMcpInstallerService
 
     public void Uninstall(McpTarget target, string configPath)
     {
-        var path = ExpandPath(configPath);
+        var path = PathUtil.Expand(configPath);
         if (!File.Exists(path)) return;
 
         switch (target)
@@ -151,16 +151,5 @@ public class McpInstallerService : IMcpInstallerService
         servers = new Dictionary<object, object>();
         root["mcp_servers"] = servers;
         return servers;
-    }
-
-    private static string ExpandPath(string path)
-    {
-        path = path.Trim();
-        if (path.StartsWith('~'))
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            path = home + path[1..];
-        }
-        return path;
     }
 }

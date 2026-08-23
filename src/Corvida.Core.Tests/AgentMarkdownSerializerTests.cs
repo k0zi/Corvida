@@ -36,12 +36,60 @@ public class AgentMarkdownSerializerTests
         Assert.Contains($"name: {agent.Name}", output);
     }
 
+    // A hex colour has to be quoted: unquoted, YAML reads the leading '#' as a comment and the
+    // whole value disappears. Corvida's own hand parser tolerated it, a real one would not.
     [Fact]
-    public void Serialize_FrontmatterContainsColor()
+    public void Serialize_QuotesHexColor()
     {
         var agent = MakeAgent();
         var output = AgentMarkdownSerializer.Serialize(agent);
-        Assert.Contains($"color: {agent.Color}", output);
+        Assert.Contains($"color: \"{agent.Color}\"", output);
+    }
+
+    [Fact]
+    public void Parse_ReadsUnquotedColor_FromFilesWrittenBeforeQuotingWasAdded()
+    {
+        var agent = AgentMarkdownSerializer.Parse("---\nid: x\nname: n\ncolor: #4C6EF5\n---\n");
+        Assert.Equal("#4C6EF5", agent.Color);
+    }
+
+    [Fact]
+    public void Parse_RoundtripsDescriptionContainingAColon()
+    {
+        var agent = MakeAgent();
+        agent.Description = "Use when: the build breaks.";
+        var parsed = AgentMarkdownSerializer.Parse(AgentMarkdownSerializer.Serialize(agent));
+        Assert.Equal(agent.Description, parsed.Description);
+    }
+
+    [Fact]
+    public void Parse_RoundtripsMultilineDescription()
+    {
+        var agent = MakeAgent();
+        agent.Description = "First line.\nSecond line.";
+        var parsed = AgentMarkdownSerializer.Parse(AgentMarkdownSerializer.Serialize(agent));
+        Assert.Equal(agent.Description, parsed.Description);
+    }
+
+    // A newline in the description used to spill the rest of the value into the frontmatter as a
+    // stray line, which silently truncated the description and corrupted every key after it.
+    [Fact]
+    public void Serialize_MultilineDescriptionStaysOnOneFrontmatterLine()
+    {
+        var agent = MakeAgent();
+        agent.Description = "First line.\nSecond line.";
+        var frontmatter = AgentMarkdownSerializer.Serialize(agent).Split("---")[1];
+        Assert.DoesNotContain("Second line.\n", frontmatter);
+        Assert.Single(frontmatter.Split('\n'), l => l.StartsWith("description:"));
+    }
+
+    [Fact]
+    public void Parse_RoundtripsNameContainingAColon()
+    {
+        var agent = MakeAgent();
+        agent.Name = "Ada: the reviewer";
+        var parsed = AgentMarkdownSerializer.Parse(AgentMarkdownSerializer.Serialize(agent));
+        Assert.Equal(agent.Name, parsed.Name);
     }
 
     [Fact]

@@ -84,6 +84,13 @@ All service code lives in `Corvida.Core/Services/` with namespace `Corvida.Servi
 
 `MarkdownSerializer` / `AgentMarkdownSerializer` (public static) handle YAML frontmatter + markdown body serialization for `KanbanTask` / `Agent` files respectively.
 
+Frontmatter values go through `YamlScalar.Encode`/`Decode` rather than being interpolated straight
+into `key: {value}`. Every value here is user-typed prose, and the plain form breaks on things users
+actually enter: a description containing `": "` is an invalid mapping, a newline spills the rest of
+the value into the frontmatter as a stray line, and a hex colour's leading `#` opens a comment that
+swallows the value. `Decode` still reads the unquoted form, so files written before this exist keep
+loading.
+
 ### DI registration (same pattern in both Corvida and Corvida.Mcp)
 
 ```csharp
@@ -292,11 +299,48 @@ The desktop app can install Claude-Code-style skills (a `SKILL.md` with YAML fro
 
 ## Agent seeding & export (Corvida)
 
-Separate from the Skills feature, but the same file-based-installer shape — this exports Corvida's own **Agent** entities (the Kanban board-member records) as Claude-Code-style subagent `.md` files, and seeds a starter set of them at first run:
+Separate from the Skills feature, but the same file-based-installer shape — this exports Corvida's own **Agent** entities (the Kanban board-member records) as subagent `.md` files in the target tool's own format, and seeds a starter set of them at first run:
 
 - **Bundled agent templates** ship under `Corvida/Corvida/Agents/*.md` (copied to the build output via `Corvida.csproj`'s `<None Include="Agents\**" .../>`) — currently `architect`, `code-reviewer`, `developer`, `orchestrator`, `security-reviewer`. Each file uses the same frontmatter+body shape as a Claude Code subagent (`name`/`description` + Markdown body).
 - `BuiltInAgentSeeder.EnsureSeededAsync` (static, called fire-and-forget from `App.axaml.cs` at startup) reads those templates via `SkillMarkdownSerializer.Parse` and creates one `Agent` per template on first run — with a deterministic `builtin-{slug}` ID (so re-runs don't duplicate them) and a per-slug accent color — via whatever `IAgentService` is currently active (local or HTTP).
-- `IAgentInstallerService`/`AgentInstallerService` does the reverse: it serializes every *existing* `Agent` (built-in or user-created) via `SkillMarkdownSerializer.Serialize` and writes one `{slug}.md` per agent into a target root, so any Corvida Agent — not just the bundled templates — can be installed as a real Claude Code/OpenCode/Hermes subagent. Driven from the **Settings** page's "Install Agents" section, with the same per-tool target paths as Skills but under an `agents/` (not `skills/`) folder.
+- `IAgentInstallerService`/`AgentInstallerService` does the reverse: it writes every *existing* `Agent` (built-in or user-created) out as one subagent definition per agent, so any Corvida Agent — not just the bundled templates — can be installed as a real subagent. Driven from the **Settings** page's "Install Agents" section.
+
+### Exporting agents as subagents
+
+Three things about this export are easy to get wrong, and all three fail silently.
+
+**The target's format is not Corvida's format.** `AgentTarget` (`ClaudeCode`/`OpenCode`) picks an
+`IAgentFileFormat`, because the two tools disagree in ways that produce a file the tool loads but
+misreads. Claude Code takes the agent's identity from a `name` frontmatter key; OpenCode derives it
+from the file path instead and ignores `name`, so definitions are written flat — a nested file would
+be named `team/reviewer`. OpenCode's `mode` also defaults to `all`, which puts the agent in the
+primary-agent switcher rather than the delegation list, so the export says `mode: subagent`
+explicitly. Both use the file body verbatim as the system prompt, which is what `Agent.Personality`
+becomes — that is why the Agents page labels it as such.
+
+`tools`, `model` and `color` are deliberately omitted. Omitting the first two gives the subagent the
+full tool set and the caller's model, the right default for an agent Corvida knows nothing else
+about; `color` is omitted because Claude Code does not document what values it accepts (OpenCode
+does — `#rrggbb` — so `Agent.Color` could be emitted there if it's ever wanted).
+
+**Hermes is not a target here.** It has no on-disk agent definitions at all: its subagents are
+spawned at runtime from a goal string via its `delegate_task` tool, so nothing ever read the
+`~/.hermes/agents/` folder this used to write into. Hermes remains a target for skills and for the
+MCP server, which it genuinely does load.
+
+**Ownership is tracked outside the files.** `AgentInstallManifest`
+(`{AppData}/Corvida/agent-installs.json`) records which files Corvida wrote into which root. Install
+never overwrites a file that isn't in the manifest — those belong to the user, whose own
+hand-written subagents live in the same folder — and reports them as conflicts instead; uninstall
+deletes only manifest-owned files, and leaves alone any whose content hash no longer matches what
+Corvida wrote. Install also removes manifest entries that no longer correspond to an agent, or the
+old file left behind by a renamed one. The marker can't live in the file itself: none of the target
+tools document what they do with an unrecognised frontmatter key, and a rejected key would cost the
+whole agent.
+
+`AgentSlug` derives the file name, folding accents rather than dropping them (`Tervező` →
+`tervezo`, not `tervez`) and falling back to the agent id when a name transliterates away to
+nothing. Two agents whose names slugify alike get distinct files.
 
 ## MCP self-registration (Corvida)
 

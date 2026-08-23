@@ -55,8 +55,8 @@
 
                             <StackPanel Spacing="6">
                                 <TextBlock Text="Description" FontWeight="Medium"/>
-                                <TextBlock Text="Shown to Claude Code to decide when to delegate to this agent. Include a &quot;Use when...&quot; trigger phrase." FontSize="11" Opacity="0.6"/>
-                                <TextBox Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"/>
+                                <TextBlock Text="One line, shown to a coding agent to decide when to delegate to this agent. Include a &quot;Use when...&quot; trigger phrase." FontSize="11" Opacity="0.6"/>
+                                <TextBox Text="{Binding Description}" AcceptsReturn="False" TextWrapping="Wrap" MinHeight="60"/>
                             </StackPanel>
 
                             <StackPanel Spacing="6">
@@ -83,6 +83,7 @@
 
                     <StackPanel Spacing="6">
                         <TextBlock Text="Personality" FontWeight="Medium"/>
+                        <TextBlock Text="Written verbatim as the system prompt when this agent is installed into Claude Code, OpenCode or Hermes — so write it as instructions to the agent, not as a description of it." FontSize="11" Opacity="0.6" TextWrapping="Wrap"/>
                         <controls:MarkdownEditor Text="{Binding Personality}" MinHeight="250"/>
                     </StackPanel>
                 </StackPanel>

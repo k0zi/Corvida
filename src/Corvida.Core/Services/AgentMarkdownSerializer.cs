@@ -28,10 +28,12 @@ public static class AgentMarkdownSerializer
                 }
                 if (inFrontmatter)
                 {
+                    // Keys never contain a colon, so the first one is always the separator —
+                    // a colon inside the value belongs to the scalar and YamlScalar handles it.
                     var colon = line.IndexOf(':');
                     if (colon < 0) continue;
                     var key = line[..colon].Trim();
-                    var value = line[(colon + 1)..].Trim();
+                    var value = YamlScalar.Decode(line[(colon + 1)..]);
                     switch (key)
                     {
                         case "id": agent.Id = value; break;
@@ -56,13 +58,13 @@ public static class AgentMarkdownSerializer
     {
         var sb = new StringBuilder();
         sb.AppendLine("---");
-        sb.AppendLine($"id: {agent.Id}");
-        sb.AppendLine($"name: {agent.Name}");
+        sb.AppendLine($"id: {YamlScalar.Encode(agent.Id)}");
+        sb.AppendLine($"name: {YamlScalar.Encode(agent.Name)}");
         if (!string.IsNullOrEmpty(agent.Description))
-            sb.AppendLine($"description: {agent.Description}");
-        sb.AppendLine($"color: {agent.Color}");
+            sb.AppendLine($"description: {YamlScalar.Encode(agent.Description)}");
+        sb.AppendLine($"color: {YamlScalar.Encode(agent.Color)}");
         if (agent.AvatarDataUri is not null)
-            sb.AppendLine($"avatar: {agent.AvatarDataUri}");
+            sb.AppendLine($"avatar: {YamlScalar.Encode(agent.AvatarDataUri)}");
         sb.AppendLine("---");
         sb.AppendLine();
         sb.Append(agent.Personality);

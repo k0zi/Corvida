@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -36,10 +37,8 @@ public partial class SettingsViewModel : PageBase
 
     [ObservableProperty] private string _claudeCodeAgentsPath = "~/.claude/agents";
     [ObservableProperty] private string _opencodeAgentsPath = "~/.config/opencode/agent";
-    [ObservableProperty] private string _hermesAgentsPath = "~/.hermes/agents";
     [ObservableProperty] private bool _claudeCodeAgentsInstalled;
     [ObservableProperty] private bool _opencodeAgentsInstalled;
-    [ObservableProperty] private bool _hermesAgentsInstalled;
 
     [ObservableProperty] private string _mcpProjectPath = string.Empty;
     [ObservableProperty] private string _claudeCodeMcpConfigPath = "~/.claude.json";
@@ -92,9 +91,8 @@ public partial class SettingsViewModel : PageBase
     partial void OnOpencodeSkillsPathChanged(string value) => OpencodeSkillsInstalled = _skillInstallerService.IsInstalled(value);
     partial void OnHermesSkillsPathChanged(string value) => HermesSkillsInstalled = _skillInstallerService.IsInstalled(value);
 
-    partial void OnClaudeCodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => ClaudeCodeAgentsInstalled = v);
-    partial void OnOpencodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => OpencodeAgentsInstalled = v);
-    partial void OnHermesAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(value, v => HermesAgentsInstalled = v);
+    partial void OnClaudeCodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(AgentTarget.ClaudeCode, value, v => ClaudeCodeAgentsInstalled = v);
+    partial void OnOpencodeAgentsPathChanged(string value) => _ = RefreshOneAgentInstallStateAsync(AgentTarget.OpenCode, value, v => OpencodeAgentsInstalled = v);
 
     partial void OnClaudeCodeMcpConfigPathChanged(string value) => ClaudeCodeMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.ClaudeCode, value);
     partial void OnOpencodeMcpConfigPathChanged(string value) => OpencodeMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.OpenCode, value);
@@ -102,13 +100,12 @@ public partial class SettingsViewModel : PageBase
 
     private async Task RefreshAgentInstallStateAsync()
     {
-        await RefreshOneAgentInstallStateAsync(ClaudeCodeAgentsPath, v => ClaudeCodeAgentsInstalled = v);
-        await RefreshOneAgentInstallStateAsync(OpencodeAgentsPath, v => OpencodeAgentsInstalled = v);
-        await RefreshOneAgentInstallStateAsync(HermesAgentsPath, v => HermesAgentsInstalled = v);
+        await RefreshOneAgentInstallStateAsync(AgentTarget.ClaudeCode, ClaudeCodeAgentsPath, v => ClaudeCodeAgentsInstalled = v);
+        await RefreshOneAgentInstallStateAsync(AgentTarget.OpenCode, OpencodeAgentsPath, v => OpencodeAgentsInstalled = v);
     }
 
-    private async Task RefreshOneAgentInstallStateAsync(string path, Action<bool> setInstalled) =>
-        setInstalled(await _agentInstallerService.IsInstalledAsync(path));
+    private async Task RefreshOneAgentInstallStateAsync(AgentTarget target, string path, Action<bool> setInstalled) =>
+        setInstalled(await _agentInstallerService.IsInstalledAsync(target, path));
 
     partial void OnIsLocalFolderChanged(bool value)
     {
@@ -173,28 +170,68 @@ public partial class SettingsViewModel : PageBase
     }
 
     [RelayCommand]
-    private Task ToggleClaudeCodeAgents() => ToggleAgentInstallAsync(ClaudeCodeAgentsPath, installed => ClaudeCodeAgentsInstalled = installed);
+    private Task ToggleClaudeCodeAgents() => ToggleAgentInstallAsync(AgentTarget.ClaudeCode, ClaudeCodeAgentsPath, installed => ClaudeCodeAgentsInstalled = installed);
 
     [RelayCommand]
-    private Task ToggleOpencodeAgents() => ToggleAgentInstallAsync(OpencodeAgentsPath, installed => OpencodeAgentsInstalled = installed);
+    private Task ToggleOpencodeAgents() => ToggleAgentInstallAsync(AgentTarget.OpenCode, OpencodeAgentsPath, installed => OpencodeAgentsInstalled = installed);
 
-    [RelayCommand]
-    private Task ToggleHermesAgents() => ToggleAgentInstallAsync(HermesAgentsPath, installed => HermesAgentsInstalled = installed);
-
-    private async Task ToggleAgentInstallAsync(string path, Action<bool> setInstalled)
+    private async Task ToggleAgentInstallAsync(AgentTarget target, string path, Action<bool> setInstalled)
     {
         try
         {
-            if (await _agentInstallerService.IsInstalledAsync(path))
-                await _agentInstallerService.UninstallAsync(path);
-            else
-                await _agentInstallerService.InstallAsync(path);
-            setInstalled(await _agentInstallerService.IsInstalledAsync(path));
+            var installing = !await _agentInstallerService.IsInstalledAsync(target, path);
+            var result = installing
+                ? await _agentInstallerService.InstallAsync(target, path)
+                : await _agentInstallerService.UninstallAsync(target, path);
+
+            setInstalled(await _agentInstallerService.IsInstalledAsync(target, path));
+            await ReportAgentInstallAsync(target, installing, result);
         }
         catch (System.Exception ex)
         {
             await _dialogService.ShowConfirmDialogAsync("Agent Install Failed", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Tells the user what the run actually did. Staying silent is misleading here: a name conflict
+    /// leaves an agent uninstalled, and every target only picks up its agents folder on restart.
+    /// </summary>
+    private async Task ReportAgentInstallAsync(AgentTarget target, bool installing, AgentInstallResult result)
+    {
+        var tool = AgentTargetNames.Display(target);
+        var lines = new List<string>();
+
+        if (installing)
+        {
+            if (result.Written == 0 && result.Conflicts.Count == 0)
+            {
+                await _dialogService.ShowConfirmDialogAsync(
+                    "Nothing to Install", "There are no agents to export yet. Create one on the Agents page first.");
+                return;
+            }
+
+            lines.Add($"Wrote {result.Written} agent definition(s) for {tool}.");
+
+            if (result.Removed > 0)
+                lines.Add($"Cleaned up {result.Removed} stale definition(s) left behind by renamed or deleted agents.");
+        }
+        else
+        {
+            lines.Add($"Removed {result.Removed} agent definition(s) from {tool}.");
+        }
+
+        if (result.Conflicts.Count > 0)
+            lines.Add($"Skipped, because a file Corvida did not write already occupies that name: {string.Join(", ", result.Conflicts)}.");
+
+        if (result.KeptModified.Count > 0)
+            lines.Add($"Left in place, because they were edited after Corvida wrote them: {string.Join(", ", result.KeptModified)}.");
+
+        if (installing)
+            lines.Add($"Restart {tool} for it to pick the definitions up.");
+
+        await _dialogService.ShowConfirmDialogAsync(
+            installing ? "Agents Installed" : "Agents Removed", string.Join("\n\n", lines));
     }
 
     [RelayCommand]

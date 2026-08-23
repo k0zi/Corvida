@@ -9,7 +9,7 @@ public class SkillInstallerService : ISkillInstallerService
 {
     public bool IsInstalled(string targetRoot)
     {
-        var root = ExpandPath(targetRoot);
+        var root = PathUtil.Expand(targetRoot);
         foreach (var skillName in SkillNames())
         {
             if (!File.Exists(Path.Combine(root, skillName, "SKILL.md")))
@@ -20,7 +20,7 @@ public class SkillInstallerService : ISkillInstallerService
 
     public async Task InstallAsync(string targetRoot)
     {
-        var root = ExpandPath(targetRoot);
+        var root = PathUtil.Expand(targetRoot);
         foreach (var skillName in SkillNames())
         {
             var sourceDir = Path.Combine(SkillPaths.UserSkillsRoot, skillName);
@@ -37,7 +37,7 @@ public class SkillInstallerService : ISkillInstallerService
 
     public Task UninstallAsync(string targetRoot)
     {
-        var root = ExpandPath(targetRoot);
+        var root = PathUtil.Expand(targetRoot);
         foreach (var skillName in SkillNames())
         {
             var destDir = Path.Combine(root, skillName);
@@ -62,16 +62,5 @@ public class SkillInstallerService : ISkillInstallerService
         await using var source = File.OpenRead(sourceFile);
         await using var dest = File.Create(destFile);
         await source.CopyToAsync(dest);
-    }
-
-    private static string ExpandPath(string path)
-    {
-        path = path.Trim();
-        if (path.StartsWith('~'))
-        {
-            var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            path = home + path[1..];
-        }
-        return path;
     }
 }
