@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/Corvida/Corvida/Assets/corvida.png" alt="Corvida logo" width="120" />
+<img src="src/Corvida/Assets/corvida.png" alt="Corvida logo" width="120" />
 
 # Corvida
 
