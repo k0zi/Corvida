@@ -26,6 +26,7 @@ Corvida is a Kanban board manager built around a shared core: a desktop client, 
   - [REST API](#rest-api)
   - [MCP Server](#mcp-server)
   - [Web UI](#web-ui)
+- [AI Tool Integration](#ai-tool-integration)
 - [Authentication](#authentication)
 - [Configuration](#configuration)
 - [Development](#development)
@@ -37,10 +38,14 @@ Corvida is a Kanban board manager built around a shared core: a desktop client, 
 
 - Create and manage multiple boards, with archive/restore for finished ones
 - Organize tasks into customizable columns (e.g. To-Do, In Progress, Done)
+- **Swimlane grid** — every board member gets a row, so each card sits at the intersection of a column and an assignee: drag it sideways to change status, up or down to reassign it. Ordering within a cell is persisted per board.
 - Write task descriptions in Markdown
-- Task priorities, planned start/end dates, and assignment to agents
+- Task priorities and planned start/end dates
 - **Agents** — reusable board members (human or AI) with a name, color/avatar, and a Markdown "personality", assignable across any board
 - **Skills** — create, edit, and install Claude-Code-style skills (`SKILL.md`) into Claude Code, OpenCode, or Hermes directly from the app
+- **Install into your AI tooling** — export any Corvida agent as a Claude Code or OpenCode subagent, and register the bundled MCP server into Claude Code, OpenCode, or Hermes, all from the Settings page
+- Runs on the desktop *or in the browser* — the same UI, compiled to WebAssembly
+- **Optional login** — off by default; switch it on for password accounts, `Admin`/`User` roles, and revocable access keys for the MCP server
 - Live updates across open clients via SignalR when using the REST API
 - Light and dark theme support
 - Store data locally as files, or centrally through the REST API
@@ -52,21 +57,24 @@ Corvida is split into focused projects that share a common core:
 
 | Project | Type | Role |
 |---|---|---|
-| `Corvida` | Desktop app | Avalonia UI client |
-| `Corvida.Api` | ASP.NET Core | REST API backed by PostgreSQL |
+| `Corvida` | Desktop app | Avalonia UI client (Windows, macOS, Linux) |
+| `Corvida.Web` | Avalonia Browser (WASM) | The same UI running in a browser, served by nginx |
+| `Corvida.Shared` | Avalonia class library | ViewModels, views and dialogs shared by both UI hosts |
+| `Corvida.Api` | ASP.NET Core | REST API backed by PostgreSQL, with a SignalR hub for live updates |
 | `Corvida.Mcp` | Console (stdio) | MCP server exposing Kanban tools to LLMs |
 | `Corvida.Core` | Class library | Shared models and service layer |
 | `Corvida.AppHost` | .NET Aspire | Local orchestration of the API + PostgreSQL |
 | `Corvida.ServiceDefaults` | Class library | Shared Aspire service defaults for `Corvida.Api` |
+| `Corvida.Core.Tests` / `Corvida.Api.Tests` | xUnit | Unit tests for the core; integration tests for the API |
 
-The desktop app and MCP server both depend on `Corvida.Core` and can talk either to the local filesystem or to `Corvida.Api` over HTTP — see [Data Storage](#data-storage).
+The desktop and browser clients share one UI in `Corvida.Shared`. The desktop app and MCP server both depend on `Corvida.Core` and can talk either to the local filesystem or to `Corvida.Api` over HTTP — see [Data Storage](#data-storage).
 
 ## Installation
 
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Docker](https://www.docker.com/) or [Podman](https://podman.io/) — only needed to run `Corvida.Api` in a container
+- [Docker](https://www.docker.com/) or [Podman](https://podman.io/) — needed to run `Corvida.Api` in a container, and for the API integration tests
 
 ### Desktop App
 
@@ -121,6 +129,9 @@ dotnet run --project Corvida.AppHost/Corvida.AppHost.csproj
 ### MCP Server
 
 `Corvida.Mcp` exposes 22 tools (list/create/update/delete boards, groups, board members, tasks, and agents) over stdio via the `ModelContextProtocol` SDK.
+
+The desktop app can write all of the configs below for you — see
+[AI Tool Integration](#ai-tool-integration). To do it by hand:
 
 **Claude Code** — register it globally so it's available in every project:
 
@@ -196,6 +207,30 @@ dotnet run --project Corvida.Web/Corvida.Web.csproj    # http://localhost:5180
 
 In that mode the app reads `wwwroot/config.json`, which points at `http://localhost:5083` — the API
 is then a separate origin, which the API's default CORS list already allows.
+
+## AI Tool Integration
+
+Beyond the MCP server, the desktop app's **Settings** page can write Corvida's own content into the
+config folders of the AI tools you already use. Each entry has an editable target path and an
+Install / Uninstall pair, so nothing is written anywhere you did not point it at.
+
+| Section | What it writes | Default targets |
+|---|---|---|
+| **Install Skills** | The Kanban skills (`corvida-plan`, `corvida-implement`) as `SKILL.md` + `agents/openai.yaml` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.hermes/skills` |
+| **Install Agents** | Every Corvida agent as a subagent definition, in that tool's own format | `~/.claude/agents`, `~/.config/opencode/agent` |
+| **Install MCP Server** | A single `corvida` entry merged into the tool's existing config file | `~/.claude.json`, `~/.config/opencode/opencode.json`, `~/.hermes/config.yaml` |
+
+A few things worth knowing:
+
+- **Skills** are editable in-app from the **Skills** page. The bundled ones are seeded once into
+  `{AppData}/Corvida/skills/`, and everything installs from there — your edits survive upgrades.
+- **Agents** are exported as subagents, with the agent's Markdown personality as the system prompt.
+  Corvida tracks which files it wrote in `{AppData}/Corvida/agent-installs.json`: it will never
+  overwrite a hand-written subagent of yours that happens to share a name — it reports it as a
+  conflict — and uninstall removes only the files it created. Hermes is not a target here, since its
+  subagents are spawned at runtime rather than read from disk.
+- **MCP Server** install merges into the real config file and touches no other key, so Claude Code's
+  `~/.claude.json` keeps its project history. Uninstall removes just the `corvida` entry.
 
 ## Authentication
 
@@ -343,12 +378,33 @@ dotnet test                         # run all tests
 dotnet test --filter "FullyQualifiedName~SomeTest"   # run a single test
 ```
 
+`Corvida.Api.Tests` spins up a real PostgreSQL container per run via Testcontainers, so a container
+engine has to be running for those. With Podman, point Testcontainers at its socket:
+
+```bash
+systemctl --user enable --now podman.socket
+printf 'docker.host=unix:///run/user/%s/podman/podman.sock\n' "$(id -u)" >> ~/.testcontainers.properties
+```
+
+`Corvida.Core.Tests` needs nothing beyond the SDK.
+
 ## Data Storage
 
 Two modes, controlled by `AppSettings.StorageMode`:
 
-- **LocalFolder** *(default)* — boards and tasks are stored under `~/CorvidaData/`. Each board is a folder containing a `board.json` file and a `tasks/` directory of Markdown files with YAML frontmatter.
-- **ServerHosted** — the desktop app and MCP server talk to `Corvida.Api` over HTTP instead, which persists boards and tasks in PostgreSQL.
+- **LocalFolder** *(default)* — everything lives under `~/CorvidaData/`:
+
+  ```
+  boards/{boardId}/board.json          Board and its columns
+  boards/{boardId}/tasks/{taskId}.md   One task: YAML frontmatter + Markdown description
+  agents/{agentId}.md                  One agent: YAML frontmatter + Markdown personality
+  ```
+
+  Plain files, so they diff and version-control cleanly.
+
+- **ServerHosted** — the desktop app, the browser UI and the MCP server talk to `Corvida.Api` over
+  HTTP instead, which persists boards, tasks and agents in PostgreSQL and pushes changes to every
+  connected client over SignalR.
 
 ## Contributing
 
