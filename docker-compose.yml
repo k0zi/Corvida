@@ -16,8 +16,8 @@ services:
 
   api:
     build:
-      context: src
-      dockerfile: Corvida.Api/Dockerfile
+      context: .
+      dockerfile: src/Corvida.Api/Dockerfile
     restart: unless-stopped
     ports:
       - "5083:5083"
@@ -38,8 +38,8 @@ services:
 
   web:
     build:
-      context: src
-      dockerfile: Corvida.Web/Dockerfile
+      context: .
+      dockerfile: src/Corvida.Web/Dockerfile
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8183}:80"

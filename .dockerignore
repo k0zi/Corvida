@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/*.user
+.git/
+src/Corvida/
+src/Corvida.Mcp/
+src/Corvida.AppHost/
+src/Corvida.Core.Tests/
+src/Corvida.Api.Tests/

@@ -9,15 +9,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Restore first so a source-only change does not re-download the emscripten workload.
-COPY Corvida.Core/Corvida.Core.csproj Corvida.Core/
-COPY Corvida.Shared/Corvida.Shared.csproj Corvida.Shared/
-COPY Corvida.Web/Corvida.Web.csproj Corvida.Web/
+COPY src/Corvida.Core/Corvida.Core.csproj Corvida.Core/
+COPY src/Corvida.Shared/Corvida.Shared.csproj Corvida.Shared/
+COPY src/Corvida.Web/Corvida.Web.csproj Corvida.Web/
 RUN dotnet workload restore Corvida.Web/Corvida.Web.csproj || dotnet workload install wasm-tools
 RUN dotnet restore Corvida.Web/Corvida.Web.csproj
 
-COPY Corvida.Core/ Corvida.Core/
-COPY Corvida.Shared/ Corvida.Shared/
-COPY Corvida.Web/ Corvida.Web/
+COPY src/Corvida.Core/ Corvida.Core/
+COPY src/Corvida.Shared/ Corvida.Shared/
+COPY src/Corvida.Web/ Corvida.Web/
 RUN dotnet publish Corvida.Web/Corvida.Web.csproj -c Release -o /app
 
 FROM nginx:1.27-alpine AS final
@@ -27,12 +27,17 @@ RUN apk add --no-cache openssl
 
 COPY --from=build /app/wwwroot /usr/share/nginx/html
 
+# The bundle is redistributed to every browser that opens the UI, so its notices are served beside it
+# (/THIRD_PARTY_NOTICES.md, /licenses/).
+COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/nginx/html/
+COPY licenses/ /usr/share/nginx/html/licenses/
+
 # Empty apiBaseUrl: the browser calls this same origin and nginx proxies through to the API,
 # which is what keeps HTTPS free of mixed-content errors and needs no CORS configuration.
 RUN printf '{ "apiBaseUrl": "" }\n' > /usr/share/nginx/html/config.json
 
-COPY Corvida.Web/nginx.conf /etc/nginx/conf.d/default.conf
-COPY Corvida.Web/docker-entrypoint.d/10-corvida-cert.sh /docker-entrypoint.d/10-corvida-cert.sh
+COPY src/Corvida.Web/nginx.conf /etc/nginx/conf.d/default.conf
+COPY src/Corvida.Web/docker-entrypoint.d/10-corvida-cert.sh /docker-entrypoint.d/10-corvida-cert.sh
 RUN chmod +x /docker-entrypoint.d/10-corvida-cert.sh
 
 EXPOSE 80 443

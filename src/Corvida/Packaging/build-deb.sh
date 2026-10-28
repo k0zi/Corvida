@@ -34,7 +34,15 @@ cp "$PROJECT_DIR/Packaging/corvida.desktop" "$PKGROOT/usr/share/applications/cor
 mkdir -p "$PKGROOT/usr/share/icons/hicolor/256x256/apps"
 cp "$PROJECT_DIR/Assets/corvida.png" "$PKGROOT/usr/share/icons/hicolor/256x256/apps/corvida.png"
 
-INSTALLED_SIZE=$(du -sk "$PKGROOT/opt/corvida" | cut -f1)
+# Own license as the Debian copyright file, plus the notices and license texts of the redistributed
+# components (see THIRD_PARTY_NOTICES.md).
+REPO_ROOT="$PROJECT_DIR/../.."
+install -d -m 0755 "$PKGROOT/usr/share/doc/corvida/licenses"
+install -m 0644 "$REPO_ROOT/LICENSE" "$PKGROOT/usr/share/doc/corvida/copyright"
+install -m 0644 "$REPO_ROOT/THIRD_PARTY_NOTICES.md" "$PKGROOT/usr/share/doc/corvida/THIRD_PARTY_NOTICES.md"
+install -m 0644 "$REPO_ROOT"/licenses/* "$PKGROOT/usr/share/doc/corvida/licenses/"
+
+INSTALLED_SIZE=$(du -sk "$PKGROOT/opt/corvida" "$PKGROOT/usr/share/doc/corvida" | awk '{s+=$1} END {print s}')
 
 mkdir -p "$PKGROOT/DEBIAN"
 cat > "$PKGROOT/DEBIAN/control" <<EOF

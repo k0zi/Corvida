@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/Corvida/Assets/corvida.png" alt="Corvida logo" width="120" />
+<img src="docs/images/corvida-readme-header.png" alt="Corvida — Eurasian jay with AI agents working on a Kanban board" width="100%" />
 
 # Corvida
 
@@ -412,4 +412,9 @@ Issues and pull requests are welcome. Please open an issue to discuss significan
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+Corvida is licensed under the [MIT license](LICENSE). The desktop package, the browser UI and the API
+container also redistribute third-party components (the .NET runtime, Avalonia, SkiaSharp, the Inter font,
+Material Design Icons, OpenIddict, Npgsql, …) under their own licenses; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the `licenses/` directory. The `.deb` installs these to
+`/usr/share/doc/corvida/`, the API image carries them in `/usr/share/doc/corvida/`, and the web container
+serves them at `/THIRD_PARTY_NOTICES.md` and `/licenses/`.
