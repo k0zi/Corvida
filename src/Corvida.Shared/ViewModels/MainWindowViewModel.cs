@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Styling;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Corvida.Models;
 using Corvida.Services;
 using Material.Icons;
-using SukiUI;
-using SukiUI.Dialogs;
+using KD.Avalonia.Rice.Theming;
 
 namespace Corvida.ViewModels;
 
@@ -21,7 +21,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ISettingsService _settings;
 
     public ObservableCollection<PageBase> Pages { get; }
-    public ISukiDialogManager DialogManager { get; }
+    public DialogManager DialogManager { get; }
 
     [ObservableProperty] private MaterialIconKind _themeIcon = MaterialIconKind.WeatherSunny;
     [ObservableProperty] private PageBase? _activePage;
@@ -50,7 +50,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel(
         IEnumerable<PageBase> pages,
-        ISukiDialogManager dialogManager,
+        DialogManager dialogManager,
         IAuthClient auth,
         ITokenProvider tokens,
         ISettingsService settings)
@@ -62,9 +62,12 @@ public partial class MainWindowViewModel : ViewModelBase
         _tokens = tokens;
         _settings = settings;
 
-        var theme = SukiTheme.GetInstance();
-        UpdateThemeIcon(theme.ActiveBaseTheme);
-        theme.OnBaseThemeChanged += variant => UpdateThemeIcon(variant);
+        // ActualThemeVariantChanged covers both the toggle and the system switching on its own.
+        if (Application.Current is { } app)
+        {
+            UpdateThemeIcon(app.ActualThemeVariant);
+            app.ActualThemeVariantChanged += (_, _) => UpdateThemeIcon(app.ActualThemeVariant);
+        }
 
         // A refresh failing mid-session must drop straight back to the overlay rather than
         // leaving the UI showing stale data it can no longer refresh.
@@ -189,7 +192,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ToggleTheme() => SukiTheme.GetInstance().SwitchBaseTheme();
+    private void ToggleTheme() => ThemeManager.Instance.ToggleVariant();
 
     private void UpdateThemeIcon(ThemeVariant variant) =>
         ThemeIcon = variant == ThemeVariant.Dark

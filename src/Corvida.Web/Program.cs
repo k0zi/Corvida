@@ -5,6 +5,9 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Browser;
+using KD.Avalonia.Rice;
+using KD.Avalonia.Rice.Options;
+using KD.Avalonia.Rice.Theming;
 
 namespace Corvida.Web;
 
@@ -22,7 +25,18 @@ internal sealed partial class Program
             .StartBrowserAppAsync("out");
     }
 
-    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>();
+    public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<App>()
+        .UseRice(options =>
+        {
+            options.AppInfo = new RiceAppInfo
+            {
+                AppId = "Corvida",
+                Name = "Corvida",
+                Description = "Kanban boards for people and AI agents.",
+                IconUri = "avares://Corvida.Web/Assets/corvida.png",
+            };
+            options.DefaultThemeId = BuiltInThemes.Windows11.Id;
+        });
 
     /// <summary>
     /// Works out which Corvida API to talk to.

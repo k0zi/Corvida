@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
              xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -15,7 +15,7 @@
     <DockPanel Margin="16">
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0 0 0 16">
             <TextBlock Text="Agents" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Button Command="{Binding AddAgentCommand}" Classes="Flat" VerticalAlignment="Center">
+            <Button Command="{Binding AddAgentCommand}" Classes="accent" VerticalAlignment="Center">
                 <StackPanel Orientation="Horizontal" Spacing="4">
                     <materialIcons:MaterialIcon Kind="Plus" Width="16" Height="16"/>
                     <TextBlock Text="New Agent"/>
@@ -27,7 +27,7 @@
             <ItemsControl ItemsSource="{Binding Agents}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:Agent">
-                        <sukiUi:GlassCard Margin="0 0 0 10" Padding="16" DoubleTapped="AgentCard_DoubleTapped">
+                        <rice:RiceCard Margin="0 0 0 10" Padding="16" DoubleTapped="AgentCard_DoubleTapped">
                             <Grid ColumnDefinitions="Auto,*,Auto">
                                 <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20"
                                         Background="{Binding Color, Converter={x:Static conv:HexColorToBrushConverter.Instance}}"
@@ -57,7 +57,7 @@
                                     </Button>
                                 </StackPanel>
                             </Grid>
-                        </sukiUi:GlassCard>
+                        </rice:RiceCard>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

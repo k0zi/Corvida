@@ -1,69 +1,66 @@
-<sukiUi:SukiWindow xmlns="https://github.com/avaloniaui"
-                   xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-                   xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
-                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                   xmlns:vm="using:Corvida.ViewModels"
-                   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                   mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                   x:Class="Corvida.Views.MainWindow"
-                   x:DataType="vm:MainWindowViewModel"
-                   Icon="/Assets/corvida.png"
-                   Title="Corvida"
-                   Width="1080"
-                   Height="620"
-                   CanResize="True">
-
-    <sukiUi:SukiWindow.LogoContent>
-        <Image Width="24" Height="24" Source="/Assets/corvida.png"/>
-    </sukiUi:SukiWindow.LogoContent>
+<rice:RiceWindow xmlns="https://github.com/avaloniaui"
+                 xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
+                 xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:vm="using:Corvida.ViewModels"
+                 xmlns:dialogs="using:Corvida.Views.Dialogs"
+                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                 x:Class="Corvida.Views.MainWindow"
+                 x:DataType="vm:MainWindowViewModel"
+                 Icon="/Assets/corvida.png"
+                 Title="Corvida"
+                 Width="1080"
+                 Height="620"
+                 CanResize="True"
+                 ShowThemeSettingsButton="True"
+                 ShowAboutButton="True">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel />
     </Design.DataContext>
-    <sukiUi:SukiWindow.RightWindowTitleBarControls>
-        <StackPanel Orientation="Horizontal" Spacing="4">
+    <rice:RiceWindow.TitleBarContent>
+        <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
             <TextBlock Text="{Binding CurrentUser.DisplayName}" VerticalAlignment="Center"
                        Opacity="0.7" FontSize="12" Margin="0 0 4 0"
                        IsVisible="{Binding CurrentUser, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-            <Button Command="{Binding SignOutCommand}" Classes="Basic"
+            <Button Command="{Binding SignOutCommand}" Classes="rice-titlebar"
                     ToolTip.Tip="Sign out"
                     IsVisible="{Binding AuthRequired}">
                 <materialIcons:MaterialIcon Kind="Logout" />
             </Button>
-            <Button Command="{Binding ToggleThemeCommand}" Classes="Basic">
-                <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
-            </Button>
         </StackPanel>
-    </sukiUi:SukiWindow.RightWindowTitleBarControls>
-    <sukiUi:SukiWindow.Hosts>
-        <sukiUi:SukiDialogHost Manager="{Binding DialogManager}" />
-    </sukiUi:SukiWindow.Hosts>
+    </rice:RiceWindow.TitleBarContent>
     <Panel>
-    <sukiUi:SukiSideMenu IsSearchEnabled="True"
-                         IsVisible="{Binding IsSignedIn}"
-                         ItemsSource="{Binding Pages}"
-                         SelectedItem="{Binding ActivePage, Mode=TwoWay}">
-        <sukiUi:SukiSideMenu.HeaderContent>
-            <Image Width="128" Height="128" Source="/Assets/corvida.png"/>
-        </sukiUi:SukiSideMenu.HeaderContent>
-        <sukiUi:SukiSideMenu.ItemTemplate>
-            <DataTemplate x:DataType="vm:PageBase">
-                <sukiUi:SukiSideMenuItem Header="{Binding MenuTitle}">
-                    <sukiUi:SukiSideMenuItem.Icon>
-                        <materialIcons:MaterialIcon Kind="{Binding Icon}" />
-                    </sukiUi:SukiSideMenuItem.Icon>
-                    <sukiUi:SukiSideMenuItem.PageContent>
-                        <ContentControl Content="{Binding}" />
-                    </sukiUi:SukiSideMenuItem.PageContent>
-                </sukiUi:SukiSideMenuItem>
-            </DataTemplate>
-        </sukiUi:SukiSideMenu.ItemTemplate>
-    </sukiUi:SukiSideMenu>
+        <DockPanel IsVisible="{Binding IsSignedIn}">
+            <rice:RiceSideMenu DockPanel.Dock="Left"
+                               ItemsSource="{Binding Pages}"
+                               SelectedItem="{Binding ActivePage, Mode=TwoWay}">
+                <rice:RiceSideMenu.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PageBase">
+                        <TextBlock Text="{Binding MenuTitle}" />
+                    </DataTemplate>
+                </rice:RiceSideMenu.ItemTemplate>
+                <rice:RiceSideMenu.Styles>
+                    <Style Selector="rice|RiceSideMenuItem" x:DataType="vm:PageBase">
+                        <Setter Property="Icon" Value="{Binding Icon}" />
+                    </Style>
+                    <!-- The automatic tool tip of the collapsed menu only works with a string Header. -->
+                    <Style Selector="rice|RiceSideMenuItem:collapsed" x:DataType="vm:PageBase">
+                        <Setter Property="ToolTip.Tip" Value="{Binding MenuTitle}" />
+                    </Style>
+                </rice:RiceSideMenu.Styles>
+            </rice:RiceSideMenu>
+
+            <ContentControl Content="{Binding ActivePage}" />
+        </DockPanel>
 
         <!-- Modal gate, not a dialog: nothing behind it is reachable until sign-in succeeds. -->
         <ContentControl Content="{Binding Login}" IsVisible="{Binding !IsSignedIn}"/>
+
+        <dialogs:DialogHost DataContext="{Binding DialogManager}" />
     </Panel>
-</sukiUi:SukiWindow>
+</rice:RiceWindow>

@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
              xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:conv="using:Corvida.Converters"
              xmlns:services="using:Corvida.Services"
@@ -15,7 +15,7 @@
         <TextBlock Grid.Row="0" Text="Settings" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,16" />
         <ScrollViewer Grid.Row="1" AllowAutoHide="True">
             <StackPanel Spacing="16">
-                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
                     <StackPanel Spacing="16">
 
                         <!-- Storage Mode -->
@@ -58,7 +58,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding SaveCommand}" Classes="Flat" HorizontalAlignment="Left">
+                        <Button Command="{Binding SaveCommand}" Classes="accent" HorizontalAlignment="Left">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16" />
                                 <TextBlock Text="Save Settings" />
@@ -66,11 +66,11 @@
                         </Button>
 
                     </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
 
                 <!-- Authentication — ServerHosted mode only -->
-                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
-                                  IsVisible="{Binding IsServerHosted}">
+                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
+                               IsVisible="{Binding IsServerHosted}">
                     <StackPanel Spacing="16">
 
                         <StackPanel Spacing="6">
@@ -88,7 +88,7 @@
                             </StackPanel>
 
                             <Button IsVisible="{Binding !AuthRequired}"
-                                    Command="{Binding EnableAuthCommand}" Classes="Flat"
+                                    Command="{Binding EnableAuthCommand}" Classes="accent"
                                     HorizontalAlignment="Left">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <materialIcons:MaterialIcon Kind="Lock" Width="16" Height="16" />
@@ -114,11 +114,11 @@
                                    Text="{Binding AuthMessage}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
 
                     </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
 
                 <!-- Access keys for non-interactive clients (MCP) -->
-                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
-                                  IsVisible="{Binding CanManageApiKeys}">
+                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
+                               IsVisible="{Binding CanManageApiKeys}">
                     <StackPanel Spacing="16">
 
                         <StackPanel Spacing="6">
@@ -136,7 +136,7 @@
                                 <SelectableTextBlock Text="{Binding NewApiKey}" FontFamily="monospace"
                                                      TextWrapping="Wrap" FontSize="12" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Command="{Binding UseNewKeyForMcpCommand}" Classes="Flat">
+                                    <Button Command="{Binding UseNewKeyForMcpCommand}" Classes="accent">
                                         <TextBlock Text="Use for the MCP server" />
                                     </Button>
                                     <Button Command="{Binding DismissNewKeyCommand}" Classes="Basic">
@@ -165,7 +165,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <Button Command="{Binding CreateApiKeyCommand}" Classes="Flat"
+                        <Button Command="{Binding CreateApiKeyCommand}" Classes="accent"
                                 HorizontalAlignment="Left">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <materialIcons:MaterialIcon Kind="KeyPlus" Width="16" Height="16" />
@@ -174,11 +174,11 @@
                         </Button>
 
                     </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
 
 
 
-                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
                     <StackPanel Spacing="16">
 
                         <StackPanel Spacing="6">
@@ -193,7 +193,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding ClaudeCodeSkillsPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeSkillsInstalled}"
-                                        Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="Flat">
+                                        Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeSkillsInstalled}"
@@ -209,7 +209,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding OpencodeSkillsPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !OpencodeSkillsInstalled}"
-                                        Command="{Binding ToggleOpencodeSkillsCommand}" Classes="Flat">
+                                        Command="{Binding ToggleOpencodeSkillsCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding OpencodeSkillsInstalled}"
@@ -225,7 +225,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding HermesSkillsPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !HermesSkillsInstalled}"
-                                        Command="{Binding ToggleHermesSkillsCommand}" Classes="Flat">
+                                        Command="{Binding ToggleHermesSkillsCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding HermesSkillsInstalled}"
@@ -236,9 +236,9 @@
                         </StackPanel>
 
                     </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
 
-                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
                     <StackPanel Spacing="16">
 
                         <StackPanel Spacing="6">
@@ -253,7 +253,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding ClaudeCodeAgentsPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeAgentsInstalled}"
-                                        Command="{Binding ToggleClaudeCodeAgentsCommand}" Classes="Flat">
+                                        Command="{Binding ToggleClaudeCodeAgentsCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeAgentsInstalled}"
@@ -269,7 +269,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding OpencodeAgentsPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !OpencodeAgentsInstalled}"
-                                        Command="{Binding ToggleOpencodeAgentsCommand}" Classes="Flat">
+                                        Command="{Binding ToggleOpencodeAgentsCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding OpencodeAgentsInstalled}"
@@ -280,9 +280,9 @@
                         </StackPanel>
 
                     </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
 
-                <sukiUi:GlassCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
                     <StackPanel Spacing="16">
 
                         <StackPanel Spacing="6">
@@ -310,7 +310,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding ClaudeCodeMcpConfigPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeMcpInstalled}"
-                                        Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="Flat">
+                                        Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeMcpInstalled}"
@@ -326,7 +326,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding OpencodeMcpConfigPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !OpencodeMcpInstalled}"
-                                        Command="{Binding ToggleOpencodeMcpCommand}" Classes="Flat">
+                                        Command="{Binding ToggleOpencodeMcpCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding OpencodeMcpInstalled}"
@@ -342,7 +342,7 @@
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                 <TextBox Grid.Column="0" Text="{Binding HermesMcpConfigPath}" />
                                 <Button Grid.Column="1" IsVisible="{Binding !HermesMcpInstalled}"
-                                        Command="{Binding ToggleHermesMcpCommand}" Classes="Flat">
+                                        Command="{Binding ToggleHermesMcpCommand}" Classes="accent">
                                     <TextBlock Text="Install" />
                                 </Button>
                                 <Button Grid.Column="1" IsVisible="{Binding HermesMcpInstalled}"
@@ -353,7 +353,7 @@
                         </StackPanel>
 
                     </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
             </StackPanel>
         </ScrollViewer>
     </Grid>

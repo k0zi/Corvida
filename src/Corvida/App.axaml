@@ -1,7 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sukiUi="clr-namespace:SukiUI;assembly=SukiUI"
-             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice;assembly=KD.Avalonia.Rice"
              x:Class="Corvida.App"
              xmlns:local="using:Corvida"
              RequestedThemeVariant="Default">
@@ -12,8 +11,8 @@
     </Application.DataTemplates>
   
     <Application.Styles>
-        <FluentTheme />
-        <sukiUi:SukiTheme ThemeColor="Blue"  />
-        <materialIcons:MaterialIconStyles />
+        <!-- Includes FluentTheme and the Material icon styles. -->
+        <rice:RiceStyles />
+        <StyleInclude Source="avares://Corvida.Shared/Styles/CorvidaStyles.axaml" />
     </Application.Styles>
 </Application>

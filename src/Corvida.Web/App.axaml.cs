@@ -11,7 +11,6 @@ using Corvida.ViewModels;
 using Corvida.Web.Services;
 using Corvida.Web.Views;
 using Microsoft.Extensions.DependencyInjection;
-using SukiUI.Dialogs;
 using System;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -40,7 +39,7 @@ public partial class App : Application
             var services = new ServiceCollection();
 
             services.AddSingleton<ISettingsService>(new StaticSettingsService(ApiBaseUrl));
-            services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
+            services.AddSingleton<DialogManager>();
             services.AddSingleton<IDialogService, DialogService>();
 
             services.AddSingleton<IBoardService, HttpBoardService>();

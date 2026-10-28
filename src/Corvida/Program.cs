@@ -1,4 +1,7 @@
 ﻿using Avalonia;
+using KD.Avalonia.Rice;
+using KD.Avalonia.Rice.Options;
+using KD.Avalonia.Rice.Theming;
 using System;
 
 namespace Corvida;
@@ -17,5 +20,17 @@ sealed class Program
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
+            .UseRice(options =>
+            {
+                // AppId is the settings folder, so the chosen theme lands next to settings.json.
+                options.AppInfo = new RiceAppInfo
+                {
+                    AppId = "Corvida",
+                    Name = "Corvida",
+                    Description = "Kanban boards for people and AI agents.",
+                    IconUri = "avares://Corvida/Assets/corvida.png",
+                };
+                options.DefaultThemeId = BuiltInThemes.Windows11.Id;
+            })
             .LogToTrace();
 }

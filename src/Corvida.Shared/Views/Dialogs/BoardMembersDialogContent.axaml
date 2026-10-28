@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
              xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:models="using:Corvida.Models"
              xmlns:conv="using:Corvida.Converters"
@@ -11,11 +11,11 @@
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
                     Spacing="8" Margin="0 12 0 0">
             <Button Content="Cancel" Click="Cancel_Click" Classes="Basic" />
-            <Button Content="OK" Click="Ok_Click" Classes="Flat" />
+            <Button Content="OK" Click="Ok_Click" Classes="accent" />
         </StackPanel>
 
         <Grid ColumnDefinitions="*,Auto,*">
-            <sukiUi:GlassCard Width="200" Padding="12">
+            <rice:RiceCard Width="200" Padding="12">
                 <StackPanel Grid.Column="0" Spacing="6">
                     <TextBlock Text="Available Agents" FontWeight="Medium" />
                     <ListBox x:Name="AvailableList" Height="300">
@@ -30,7 +30,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </StackPanel>
-            </sukiUi:GlassCard>
+            </rice:RiceCard>
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Margin="8 0">
                 <Button Click="Add_Click" Classes="Basic" ToolTip.Tip="Add as member">
@@ -41,7 +41,7 @@
                 </Button>
             </StackPanel>
 
-            <sukiUi:GlassCard Grid.Column="2" Width="200" Padding="12">
+            <rice:RiceCard Grid.Column="2" Width="200" Padding="12">
             <StackPanel Grid.Column="2" Spacing="6">
                 <TextBlock Text="Board Members (and order)" FontWeight="Medium" />
                 <Grid ColumnDefinitions="*,Auto">
@@ -66,7 +66,7 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
-                </sukiUi:GlassCard>
+                </rice:RiceCard>
         </Grid>
     </DockPanel>
 </UserControl>

@@ -59,8 +59,8 @@ public partial class MarkdownEditor : UserControl
 
     private static void SetActive(Button btn, bool active)
     {
-        btn.Classes.Remove(active ? "Basic" : "Flat");
-        if (!btn.Classes.Contains(active ? "Flat" : "Basic"))
-            btn.Classes.Add(active ? "Flat" : "Basic");
+        btn.Classes.Remove(active ? "Basic" : "accent");
+        if (!btn.Classes.Contains(active ? "accent" : "Basic"))
+            btn.Classes.Add(active ? "accent" : "Basic");
     }
 }

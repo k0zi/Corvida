@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
              xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -39,7 +39,7 @@
                         <TextBlock Text="Manage Members"/>
                     </StackPanel>
                 </Button>
-                <Button Command="{Binding AddGroupCommand}" Classes="Flat" VerticalAlignment="Center">
+                <Button Command="{Binding AddGroupCommand}" Classes="accent" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <materialIcons:MaterialIcon Kind="Plus" Width="16" Height="16"/>
                         <TextBlock Text="Add Group"/>
@@ -58,7 +58,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:GroupCardViewModel">
-                            <sukiUi:GlassCard Width="280" Padding="12">
+                            <rice:RiceCard Width="280" Padding="12">
                                 <DockPanel>
                                     <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
                                         <TextBlock Grid.Column="0" Text="{Binding GroupName}"
@@ -78,7 +78,7 @@
                                         </StackPanel>
                                     </Button>
                                 </DockPanel>
-                            </sukiUi:GlassCard>
+                            </rice:RiceCard>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -113,8 +113,8 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:SwimlaneCellViewModel">
-                                                <sukiUi:GlassCard Width="280" MinHeight="72" Padding="12" VerticalAlignment="Top"
-                                                    DragDrop.AllowDrop="{Binding !IsReadOnly}" Loaded="Cell_Loaded">
+                                                <rice:RiceCard Width="280" MinHeight="72" Padding="12" VerticalAlignment="Top"
+                                                 DragDrop.AllowDrop="{Binding !IsReadOnly}" Loaded="Cell_Loaded">
                                                     <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto">
                                                         <ItemsControl ItemsSource="{Binding Tasks}" Margin="0 0 0 4">
                                                             <ItemsControl.ItemTemplate>
@@ -165,7 +165,7 @@
                                                             </ItemsControl.ItemTemplate>
                                                         </ItemsControl>
                                                     </ScrollViewer>
-                                                </sukiUi:GlassCard>
+                                                </rice:RiceCard>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

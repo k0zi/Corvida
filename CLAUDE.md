@@ -111,7 +111,7 @@ The desktop app additionally registers `IRealtimeClient` (`SignalRRealtimeClient
 
 ## Desktop App (Corvida)
 
-- **Avalonia 12** with **Fluent** theme and **SukiUI 7** component library
+- **Avalonia 12** with **KD.Avalonia.Rice** (`RiceStyles`, which includes Fluent; `RiceWindow`, `RiceSideMenu`, `RiceCard`). Rice has no dialog host, so `DialogService` shows dialogs through `DialogManager` + `Views/Dialogs/DialogHost` — an overlay inside the shell, since the browser host cannot open a second window. The `Basic`/`Danger` button classes left over from SukiUI are defined in `Corvida.Shared/Styles/CorvidaStyles.axaml`; the filled primary button is Rice's `accent` class
 - **Material.Icons.Avalonia** for icons; **Markdown.Avalonia** for rendering task/agent/skill markdown content
 - `ViewLocator.cs` auto-maps ViewModel types → View types
 - `MainWindowViewModel` owns the page stack and theme toggle (light/dark, persisted in settings)

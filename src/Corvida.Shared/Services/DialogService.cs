@@ -4,15 +4,14 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Corvida.Models;
 using Corvida.Views.Dialogs;
-using SukiUI.Dialogs;
 
 namespace Corvida.Services;
 
 public class DialogService : IDialogService
 {
-    private readonly ISukiDialogManager _dialogManager;
+    private readonly DialogManager _dialogManager;
 
-    public DialogService(ISukiDialogManager dialogManager)
+    public DialogService(DialogManager dialogManager)
     {
         _dialogManager = dialogManager;
     }
@@ -35,20 +34,16 @@ public class DialogService : IDialogService
     private Task<TResult> ShowAsync<TResult>(string title, Func<Action<TResult>, Control> createContent, TResult defaultResult)
     {
         var tcs = new TaskCompletionSource<TResult>();
-        SukiDialogBuilder? builder = null;
+        DialogRequest? request = null;
 
         void Complete(TResult result)
         {
             tcs.TrySetResult(result);
-            if (builder is not null) _dialogManager.TryDismissDialog(builder.Dialog);
+            if (request is not null) _dialogManager.Dismiss(request);
         }
 
         var content = createContent(Complete);
-        builder = _dialogManager.CreateDialog()
-            .WithTitle(title)
-            .WithContent(content)
-            .OnDismissed(_ => tcs.TrySetResult(defaultResult));
-        builder.TryShow();
+        request = _dialogManager.Show(title, content, () => tcs.TrySetResult(defaultResult));
 
         return tcs.Task;
     }

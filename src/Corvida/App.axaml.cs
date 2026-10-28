@@ -13,7 +13,6 @@ using Corvida.Services;
 using Corvida.ViewModels;
 using Corvida.Views;
 using Microsoft.Extensions.DependencyInjection;
-using SukiUI.Dialogs;
 
 namespace Corvida;
 
@@ -38,7 +37,7 @@ public partial class App : Application
 
             // Services
             services.AddSingleton<ISettingsService, SettingsService>();
-            services.AddSingleton<ISukiDialogManager, SukiDialogManager>();
+            services.AddSingleton<DialogManager>();
             services.AddSingleton<IDialogService, DialogService>();
 
             // Storage: concrete implementations + strategy adapters

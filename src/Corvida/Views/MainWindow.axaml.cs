@@ -6,11 +6,11 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform;
-using SukiUI.Controls;
+using KD.Avalonia.Rice.Controls;
 
 namespace Corvida.Views;
 
-public partial class MainWindow : SukiWindow
+public partial class MainWindow : RiceWindow
 {
     private const double EdgeThickness = 6;
     private const double FallbackMinWidth = 480;
@@ -30,7 +30,7 @@ public partial class MainWindow : SukiWindow
     {
         InitializeComponent();
 
-        // Avalonia's BeginResizeDrag() (used by SukiWindow's own edge grips) relies on the
+        // Avalonia's BeginResizeDrag() (used by RiceWindow's own edge grips) relies on the
         // window manager honoring _NET_WM_MOVERESIZE, which is unreliable on Ubuntu/GNOME
         // (see AvaloniaUI/Avalonia#14291). Resizing is implemented manually here instead,
         // by hit-testing the pointer against the window bounds and driving Width/Height/

@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
+             xmlns:services="using:Corvida.Services"
+             x:Class="Corvida.Views.Dialogs.DialogHost"
+             x:DataType="services:DialogManager">
+
+    <!-- Every open dialog gets its own backdrop, stacked in a single grid cell: the newest is on top,
+         and the backdrops keep everything underneath from receiving input. -->
+    <ItemsControl ItemsSource="{Binding Dialogs}">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <Grid />
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="services:DialogRequest">
+                <Border Background="{DynamicResource RiceOverlayBrush}">
+                    <rice:RiceCard Header="{Binding Title}" Content="{Binding Content}"
+                                   Elevation="3" Padding="0" Margin="24"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

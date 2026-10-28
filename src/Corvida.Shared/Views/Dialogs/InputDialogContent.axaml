@@ -8,7 +8,7 @@
         <TextBox x:Name="InputBox" KeyDown="InputBox_KeyDown"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="Cancel" Click="Cancel_Click" Classes="Basic"/>
-            <Button Content="OK" Click="Ok_Click" Classes="Flat"/>
+            <Button Content="OK" Click="Ok_Click" Classes="accent"/>
         </StackPanel>
     </StackPanel>
 </UserControl>

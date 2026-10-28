@@ -1,48 +1,48 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:sukiUi="clr-namespace:SukiUI.Controls;assembly=SukiUI"
-             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
              xmlns:vm="clr-namespace:Corvida.ViewModels;assembly=Corvida.Shared"
+             xmlns:dialogs="clr-namespace:Corvida.Views.Dialogs;assembly=Corvida.Shared"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="620"
              x:Class="Corvida.Web.Views.MainView"
-             x:DataType="vm:MainWindowViewModel">
+             x:DataType="vm:MainWindowViewModel"
+             Background="{DynamicResource RiceBackgroundBrush}">
 
-    <sukiUi:SukiMainHost>
-        <sukiUi:SukiMainHost.Hosts>
-            <sukiUi:SukiDialogHost Manager="{Binding DialogManager}" />
-        </sukiUi:SukiMainHost.Hosts>
+    <Panel>
+        <!-- No RiceWindow in the browser, so the theme toggle that lives in its title bar moves to
+             the side menu's footer. -->
+        <DockPanel IsVisible="{Binding IsSignedIn}">
+            <rice:RiceSideMenu DockPanel.Dock="Left"
+                               ItemsSource="{Binding Pages}"
+                               SelectedItem="{Binding ActivePage, Mode=TwoWay}">
+                <rice:RiceSideMenu.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PageBase">
+                        <TextBlock Text="{Binding MenuTitle}" />
+                    </DataTemplate>
+                </rice:RiceSideMenu.ItemTemplate>
+                <rice:RiceSideMenu.Styles>
+                    <Style Selector="rice|RiceSideMenuItem" x:DataType="vm:PageBase">
+                        <Setter Property="Icon" Value="{Binding Icon}" />
+                    </Style>
+                    <!-- The automatic tool tip of the collapsed menu only works with a string Header. -->
+                    <Style Selector="rice|RiceSideMenuItem:collapsed" x:DataType="vm:PageBase">
+                        <Setter Property="ToolTip.Tip" Value="{Binding MenuTitle}" />
+                    </Style>
+                </rice:RiceSideMenu.Styles>
+                <rice:RiceSideMenu.Footer>
+                    <rice:RiceSideMenuItem Header="Toggle theme" Icon="{Binding ThemeIcon}"
+                                           Command="{Binding ToggleThemeCommand}" />
+                </rice:RiceSideMenu.Footer>
+            </rice:RiceSideMenu>
 
-        <Panel>
-        <sukiUi:SukiSideMenu IsSearchEnabled="True"
-                             IsVisible="{Binding IsSignedIn}"
-                             ItemsSource="{Binding Pages}"
-                             SelectedItem="{Binding ActivePage, Mode=TwoWay}">
-            <sukiUi:SukiSideMenu.HeaderContent>
-                <StackPanel Spacing="8" HorizontalAlignment="Center">
-                    <Image Width="96" Height="96" Source="/Assets/corvida.png"/>
-                    <Button Command="{Binding ToggleThemeCommand}" Classes="Basic" HorizontalAlignment="Center">
-                        <materialIcons:MaterialIcon Kind="{Binding ThemeIcon}" />
-                    </Button>
-                </StackPanel>
-            </sukiUi:SukiSideMenu.HeaderContent>
-            <sukiUi:SukiSideMenu.ItemTemplate>
-                <DataTemplate x:DataType="vm:PageBase">
-                    <sukiUi:SukiSideMenuItem Header="{Binding MenuTitle}">
-                        <sukiUi:SukiSideMenuItem.Icon>
-                            <materialIcons:MaterialIcon Kind="{Binding Icon}" />
-                        </sukiUi:SukiSideMenuItem.Icon>
-                        <sukiUi:SukiSideMenuItem.PageContent>
-                            <ContentControl Content="{Binding}" />
-                        </sukiUi:SukiSideMenuItem.PageContent>
-                    </sukiUi:SukiSideMenuItem>
-                </DataTemplate>
-            </sukiUi:SukiSideMenu.ItemTemplate>
-        </sukiUi:SukiSideMenu>
+            <ContentControl Content="{Binding ActivePage}" />
+        </DockPanel>
 
-            <!-- The browser host has no second window, so the gate has to be an overlay here too. -->
-            <ContentControl Content="{Binding Login}" IsVisible="{Binding !IsSignedIn}"/>
-        </Panel>
-    </sukiUi:SukiMainHost>
+        <!-- The browser host has no second window, so the gate has to be an overlay here too. -->
+        <ContentControl Content="{Binding Login}" IsVisible="{Binding !IsSignedIn}"/>
+
+        <dialogs:DialogHost DataContext="{Binding DialogManager}" />
+    </Panel>
 </UserControl>
