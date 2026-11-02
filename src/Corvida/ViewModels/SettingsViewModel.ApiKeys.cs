@@ -50,7 +50,7 @@ public partial class SettingsViewModel
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Could Not Create Key", ex.Message);
+            _notifications.Error(ex.Message, "Could Not Create Key");
         }
     }
 
@@ -69,7 +69,7 @@ public partial class SettingsViewModel
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Could Not Revoke Key", ex.Message);
+            _notifications.Error(ex.Message, "Could Not Revoke Key");
         }
     }
 
@@ -82,7 +82,7 @@ public partial class SettingsViewModel
         _settingsService.Settings.ApiKey = NewApiKey;
         await _settingsService.SaveAsync();
 
-        await _dialogService.ShowConfirmDialogAsync(
+        await _dialogService.ShowMessageAsync(
             "Key Saved",
             "The MCP server will use this key the next time it starts. It is stored in " +
             "settings.json in plain text, so treat that file as a credential.");

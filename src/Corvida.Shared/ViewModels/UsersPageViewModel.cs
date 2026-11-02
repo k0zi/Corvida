@@ -13,6 +13,7 @@ public partial class UsersPageViewModel : PageBase, IAdminOnlyPage
 {
     private readonly IUserAdminService _userService;
     private readonly IDialogService _dialogService;
+    private readonly INotificationService _notifications;
 
     private readonly Stack<ViewModelBase> _navStack = new();
     private readonly UsersListViewModel _listVm;
@@ -24,12 +25,13 @@ public partial class UsersPageViewModel : PageBase, IAdminOnlyPage
     public override MaterialIconKind Icon => MaterialIconKind.AccountKey;
     public override int DisplayOrder => 90;
 
-    public UsersPageViewModel(IUserAdminService userService, IDialogService dialogService)
+    public UsersPageViewModel(IUserAdminService userService, IDialogService dialogService, INotificationService notifications)
     {
         _userService = userService;
         _dialogService = dialogService;
+        _notifications = notifications;
 
-        _listVm = new UsersListViewModel(userService, dialogService, NavigateToUserEditor);
+        _listVm = new UsersListViewModel(userService, dialogService, notifications, NavigateToUserEditor);
         _navStack.Push(_listVm);
         CurrentViewModel = _listVm;
     }
@@ -54,7 +56,7 @@ public partial class UsersPageViewModel : PageBase, IAdminOnlyPage
     private void NavigateToUserEditor(UserAccount user)
     {
         var editorVm = new UserEditorViewModel(
-            user, _userService, _dialogService,
+            user, _userService, _dialogService, _notifications,
             onSaved: savedUser =>
             {
                 _ = _listVm.LoadAsync();

@@ -4,7 +4,7 @@ using Avalonia.Input;
 
 namespace Corvida.Views.Dialogs;
 
-public partial class InputDialogContent : UserControl
+public partial class InputDialogContent : UserControl, IDialogBody
 {
     private readonly Action<string?> _complete;
 
@@ -17,6 +17,12 @@ public partial class InputDialogContent : UserControl
         InputBox.Focus();
     }
 
+    protected override void OnLoaded(Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        base.OnLoaded(e);
+        InputBox.Focus();
+    }
+
     private void Ok_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Submit();
 
     private void Cancel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => _complete(null);
@@ -25,6 +31,16 @@ public partial class InputDialogContent : UserControl
     {
         if (e.Key == Key.Enter) Submit();
         else if (e.Key == Key.Escape) _complete(null);
+    }
+
+    public string ConfirmText => "OK";
+
+    public void Confirm() => Submit();
+
+    public void UseHostButtons()
+    {
+        ButtonRow.IsVisible = false;
+        Root.Margin = default;
     }
 
     private void Submit()

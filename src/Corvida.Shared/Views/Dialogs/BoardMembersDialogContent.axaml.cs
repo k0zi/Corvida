@@ -8,7 +8,7 @@ using Corvida.Models;
 
 namespace Corvida.Views.Dialogs;
 
-public partial class BoardMembersDialogContent : UserControl
+public partial class BoardMembersDialogContent : UserControl, IDialogBody
 {
     private readonly Action<List<string>?> _complete;
     private readonly ObservableCollection<Agent> _available;
@@ -60,7 +60,18 @@ public partial class BoardMembersDialogContent : UserControl
         _members.Move(idx, idx + 1);
     }
 
-    private void Ok_Click(object? sender, RoutedEventArgs e) => _complete(_members.Select(a => a.Id).ToList());
+    public string ConfirmText => "OK";
+
+    public void Confirm() => _complete(_members.Select(a => a.Id).ToList());
+
+    public void UseHostButtons()
+    {
+        ButtonRow.IsVisible = false;
+        Root.Margin = default;
+        Height = double.NaN;
+    }
+
+    private void Ok_Click(object? sender, RoutedEventArgs e) => Confirm();
 
     private void Cancel_Click(object? sender, RoutedEventArgs e) => _complete(null);
 }

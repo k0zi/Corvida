@@ -20,11 +20,11 @@ public partial class AgentsPageViewModel : PageBase
     public override MaterialIconKind Icon => MaterialIconKind.AccountGroup;
     public override int DisplayOrder => 10;
 
-    public AgentsPageViewModel(IAgentService agentService, IDialogService dialogService)
+    public AgentsPageViewModel(IAgentService agentService, IDialogService dialogService, INotificationService notifications)
     {
         _agentService = agentService;
 
-        _listVm = new AgentsListViewModel(agentService, dialogService, NavigateToAgentEditor);
+        _listVm = new AgentsListViewModel(agentService, dialogService, notifications, NavigateToAgentEditor);
         _navStack.Push(_listVm);
         CurrentViewModel = _listVm;
 

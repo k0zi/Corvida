@@ -39,6 +39,7 @@ public partial class App : Application
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<DialogManager>();
             services.AddSingleton<IDialogService, DialogService>();
+            services.AddSingleton<INotificationService, ToastNotificationService>();
 
             // Storage: concrete implementations + strategy adapters
             services.AddSingleton<BoardService>();

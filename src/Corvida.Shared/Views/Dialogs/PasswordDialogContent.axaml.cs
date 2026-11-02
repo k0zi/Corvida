@@ -13,9 +13,10 @@ namespace Corvida.Views.Dialogs;
 /// Deliberately separate from <see cref="InputDialogContent"/> rather than a flag on it: that one
 /// trims its input and rejects empty values, both of which are wrong for a password.
 /// </remarks>
-public partial class PasswordDialogContent : UserControl
+public partial class PasswordDialogContent : UserControl, IDialogBody
 {
     private readonly Action<string?> _complete;
+    private readonly string _confirmLabel;
 
     public PasswordDialogContent(string prompt, string confirmLabel, Action<string?> complete)
     {
@@ -23,6 +24,7 @@ public partial class PasswordDialogContent : UserControl
 
         _complete = complete;
         PromptText.Text = prompt;
+        _confirmLabel = confirmLabel;
         ConfirmButton.Content = confirmLabel;
     }
 
@@ -42,6 +44,16 @@ public partial class PasswordDialogContent : UserControl
     {
         if (e.Key == Key.Enter) Submit();
         else if (e.Key == Key.Escape) _complete(null);
+    }
+
+    public string ConfirmText => _confirmLabel;
+
+    public void Confirm() => Submit();
+
+    public void UseHostButtons()
+    {
+        ButtonRow.IsVisible = false;
+        Root.Margin = default;
     }
 
     // No trimming: leading and trailing whitespace can be part of a password.

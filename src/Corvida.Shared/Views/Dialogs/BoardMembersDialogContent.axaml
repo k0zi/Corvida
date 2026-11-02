@@ -7,8 +7,8 @@
              x:Class="Corvida.Views.Dialogs.BoardMembersDialogContent"
              Width="520" Height="420">
 
-    <DockPanel Margin="16" LastChildFill="True">
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+    <DockPanel x:Name="Root" Margin="16" LastChildFill="True">
+        <StackPanel x:Name="ButtonRow" DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
                     Spacing="8" Margin="0 12 0 0">
             <Button Content="Cancel" Click="Cancel_Click" Classes="Basic" />
             <Button Content="OK" Click="Ok_Click" Classes="accent" />

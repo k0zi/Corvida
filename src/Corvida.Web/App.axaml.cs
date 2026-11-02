@@ -41,6 +41,7 @@ public partial class App : Application
             services.AddSingleton<ISettingsService>(new StaticSettingsService(ApiBaseUrl));
             services.AddSingleton<DialogManager>();
             services.AddSingleton<IDialogService, DialogService>();
+            services.AddSingleton<INotificationService, ToastNotificationService>();
 
             services.AddSingleton<IBoardService, HttpBoardService>();
             services.AddSingleton<ITaskService, HttpTaskService>();

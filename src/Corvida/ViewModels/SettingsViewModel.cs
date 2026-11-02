@@ -14,6 +14,7 @@ public partial class SettingsViewModel : PageBase
 {
     private readonly ISettingsService _settingsService;
     private readonly IDialogService _dialogService;
+    private readonly INotificationService _notifications;
     private readonly IExportService _exportService;
     private readonly ISkillInstallerService _skillInstallerService;
     private readonly IAgentInstallerService _agentInstallerService;
@@ -61,13 +62,14 @@ public partial class SettingsViewModel : PageBase
     public override MaterialIconKind Icon => MaterialIconKind.Cog;
     public override int DisplayOrder => 99;
 
-    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService, IAuthClient authClient, IApiKeyService apiKeyService, IServerInstallerService serverInstaller)
+    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, INotificationService notifications, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService, IAuthClient authClient, IApiKeyService apiKeyService, IServerInstallerService serverInstaller)
     {
         _serverInstaller = serverInstaller;
         _authClient = authClient;
         _apiKeyService = apiKeyService;
         _settingsService = settingsService;
         _dialogService = dialogService;
+        _notifications = notifications;
         _exportService = exportService;
         _skillInstallerService = skillInstallerService;
         _agentInstallerService = agentInstallerService;
@@ -139,11 +141,11 @@ public partial class SettingsViewModel : PageBase
         try
         {
             await _exportService.ExportAsync(folder);
-            await _dialogService.ShowConfirmDialogAsync("Export Complete", $"All boards and tasks exported to:\n{folder}");
+            _notifications.Success($"All boards and tasks exported to {folder}.", "Export Complete");
         }
         catch (System.Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Export Failed", ex.Message);
+            _notifications.Error(ex.Message, "Export Failed");
         }
     }
 
@@ -161,14 +163,20 @@ public partial class SettingsViewModel : PageBase
         try
         {
             if (_skillInstallerService.IsInstalled(path))
+            {
                 await _skillInstallerService.UninstallAsync(path);
+                _notifications.Success($"Skills removed from {path}.");
+            }
             else
+            {
                 await _skillInstallerService.InstallAsync(path);
+                _notifications.Success($"Skills installed to {path}.");
+            }
             setInstalled(_skillInstallerService.IsInstalled(path));
         }
         catch (System.Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Skill Install Failed", ex.Message);
+            _notifications.Error(ex.Message, "Skill Install Failed");
         }
     }
 
@@ -192,7 +200,7 @@ public partial class SettingsViewModel : PageBase
         }
         catch (System.Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Agent Install Failed", ex.Message);
+            _notifications.Error(ex.Message, "Agent Install Failed");
         }
     }
 
@@ -209,8 +217,8 @@ public partial class SettingsViewModel : PageBase
         {
             if (result.Written == 0 && result.Conflicts.Count == 0)
             {
-                await _dialogService.ShowConfirmDialogAsync(
-                    "Nothing to Install", "There are no agents to export yet. Create one on the Agents page first.");
+                _notifications.Info(
+                    "There are no agents to export yet. Create one on the Agents page first.", "Nothing to Install");
                 return;
             }
 
@@ -233,8 +241,10 @@ public partial class SettingsViewModel : PageBase
         if (installing)
             lines.Add($"Restart {tool} for it to pick the definitions up.");
 
-        await _dialogService.ShowConfirmDialogAsync(
-            installing ? "Agents Installed" : "Agents Removed", string.Join("\n\n", lines));
+        var skipped = result.Conflicts.Count > 0 || result.KeptModified.Count > 0;
+        await _dialogService.ShowMessageAsync(
+            installing ? "Agents Installed" : "Agents Removed", string.Join("\n\n", lines),
+            skipped ? MessageKind.Warning : MessageKind.Info);
     }
 
     [RelayCommand]
@@ -251,22 +261,29 @@ public partial class SettingsViewModel : PageBase
         if (string.IsNullOrWhiteSpace(McpProjectPath) && _mcpInstallerService.BundledServerPath is null
             && !_mcpInstallerService.IsInstalled(target, configPath))
         {
-            await _dialogService.ShowConfirmDialogAsync("MCP Server Install Failed",
-                "This is a source build without a bundled MCP server. Set the path to Corvida.Mcp.csproj first.");
+            _notifications.Warning(
+                "This is a source build without a bundled MCP server. Set the path to Corvida.Mcp.csproj first.",
+                "MCP Server Install Failed");
             return;
         }
 
         try
         {
             if (_mcpInstallerService.IsInstalled(target, configPath))
+            {
                 _mcpInstallerService.Uninstall(target, configPath);
+                _notifications.Success($"The Corvida MCP server was removed from {configPath}.");
+            }
             else
+            {
                 _mcpInstallerService.Install(target, configPath, McpProjectPath.Trim());
+                _notifications.Success($"The Corvida MCP server was registered in {configPath}.");
+            }
             setInstalled(_mcpInstallerService.IsInstalled(target, configPath));
         }
         catch (System.Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("MCP Server Install Failed", ex.Message);
+            _notifications.Error(ex.Message, "MCP Server Install Failed");
         }
     }
 }

@@ -12,16 +12,19 @@ public partial class UsersListViewModel : ViewModelBase
 {
     private readonly IUserAdminService _userService;
     private readonly IDialogService _dialogService;
+    private readonly INotificationService _notifications;
     private readonly Action<UserAccount> _onEditUser;
 
     [ObservableProperty] private ObservableCollection<UserAccount> _users = new();
     [ObservableProperty] private string? _errorMessage;
 
     public UsersListViewModel(
-        IUserAdminService userService, IDialogService dialogService, Action<UserAccount> onEditUser)
+        IUserAdminService userService, IDialogService dialogService, INotificationService notifications,
+        Action<UserAccount> onEditUser)
     {
         _userService = userService;
         _dialogService = dialogService;
+        _notifications = notifications;
         _onEditUser = onEditUser;
     }
 
@@ -59,7 +62,7 @@ public partial class UsersListViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Could Not Add User", ex.Message);
+            _notifications.Error(ex.Message, "Could Not Add User");
         }
     }
 
@@ -79,10 +82,11 @@ public partial class UsersListViewModel : ViewModelBase
         {
             await _userService.DeleteUserAsync(user.Id);
             Users.Remove(user);
+            _notifications.Success($"The account '{user.UserName}' was deleted.");
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Could Not Delete User", ex.Message);
+            _notifications.Error(ex.Message, "Could Not Delete User");
         }
     }
 }

@@ -96,7 +96,14 @@ public partial class SettingsViewModel
             : $"The Corvida server is running.\n\nWeb UI: {LocalWebUrl}\nAPI (for the desktop app and the MCP server): {LocalApiUrl}";
         if (result.Warnings.Count > 0)
             message += "\n\n" + string.Join("\n\n", result.Warnings);
-        await _dialogService.ShowConfirmDialogAsync(wasInstalled ? "Settings Applied" : "Server Installed", message);
+
+        // A fresh install carries the addresses to note down, and warnings must be read: both stay
+        // until acknowledged. A plain re-apply is only an outcome.
+        if (wasInstalled && result.Warnings.Count == 0)
+            _notifications.Success(message, "Settings Applied");
+        else
+            await _dialogService.ShowMessageAsync(wasInstalled ? "Settings Applied" : "Server Installed", message,
+                result.Warnings.Count > 0 ? MessageKind.Warning : MessageKind.Info);
 
         if (!wasInstalled && !(IsServerHosted && ServerUrl.Trim() == LocalApiUrl))
             await UseLocalServerAsync();
@@ -164,7 +171,7 @@ public partial class SettingsViewModel
         catch (Exception ex)
         {
             ServerProgress = null;
-            await _dialogService.ShowConfirmDialogAsync(failureTitle, ex.Message);
+            _notifications.Error(ex.Message, failureTitle);
         }
         finally
         {

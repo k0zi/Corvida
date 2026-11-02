@@ -5,7 +5,7 @@ using Avalonia.Input;
 
 namespace Corvida.Views.Dialogs;
 
-public partial class PickerDialogContent : UserControl
+public partial class PickerDialogContent : UserControl, IDialogBody
 {
     private readonly Action<string?> _complete;
 
@@ -22,7 +22,18 @@ public partial class PickerDialogContent : UserControl
 
     private void OptionsList_DoubleTapped(object? sender, TappedEventArgs e) => Confirm();
 
-    private void Confirm()
+    public string ConfirmText => "OK";
+
+    public void UseHostButtons()
+    {
+        ButtonRow.IsVisible = false;
+        Root.Margin = default;
+        // Sized by its list instead of the overlay's fixed box; long lists scroll.
+        Height = double.NaN;
+        OptionsList.MaxHeight = 320;
+    }
+
+    public void Confirm()
     {
         if (OptionsList.SelectedItem is string selected) _complete(selected);
     }

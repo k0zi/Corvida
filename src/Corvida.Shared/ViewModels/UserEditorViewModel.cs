@@ -12,6 +12,7 @@ public partial class UserEditorViewModel : ViewModelBase
 {
     private readonly IUserAdminService _userService;
     private readonly IDialogService _dialogService;
+    private readonly INotificationService _notifications;
     private readonly Action<UserAccount> _onSaved;
     private readonly Action _onBack;
     private readonly UserAccount _user;
@@ -28,12 +29,14 @@ public partial class UserEditorViewModel : ViewModelBase
         UserAccount user,
         IUserAdminService userService,
         IDialogService dialogService,
+        INotificationService notifications,
         Action<UserAccount> onSaved,
         Action onBack)
     {
         _user = user;
         _userService = userService;
         _dialogService = dialogService;
+        _notifications = notifications;
         _onSaved = onSaved;
         _onBack = onBack;
 
@@ -75,7 +78,7 @@ public partial class UserEditorViewModel : ViewModelBase
         {
             await _userService.SetPasswordAsync(_user.Id, currentPassword: null, password);
             ErrorMessage = null;
-            await _dialogService.ShowConfirmDialogAsync("Password Reset", $"The password for {UserName} was changed.");
+            _notifications.Success($"The password for {UserName} was changed.", "Password Reset");
         }
         catch (Exception ex)
         {

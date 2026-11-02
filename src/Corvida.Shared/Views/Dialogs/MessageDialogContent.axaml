@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Corvida.Views.Dialogs.MessageDialogContent"
+             Width="400">
+
+    <StackPanel Margin="20" Spacing="16" VerticalAlignment="Center">
+        <SelectableTextBlock x:Name="MessageText" FontSize="14" TextWrapping="Wrap"/>
+        <Button Content="OK" Click="Ok_Click" Classes="accent" HorizontalAlignment="Right" MinWidth="88"
+                HorizontalContentAlignment="Center"/>
+    </StackPanel>
+</UserControl>

@@ -62,7 +62,7 @@ public partial class SettingsViewModel
 
         if (password != confirmation)
         {
-            await _dialogService.ShowConfirmDialogAsync("Require Login", "The passwords did not match.");
+            _notifications.Warning("The passwords did not match.", "Require Login");
             return;
         }
 
@@ -76,7 +76,7 @@ public partial class SettingsViewModel
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Require Login Failed", ex.Message);
+            _notifications.Error(ex.Message, "Require Login Failed");
         }
     }
 
@@ -106,7 +106,7 @@ public partial class SettingsViewModel
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Turn Off Login Failed", ex.Message);
+            _notifications.Error(ex.Message, "Turn Off Login Failed");
         }
     }
 }

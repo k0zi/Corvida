@@ -9,7 +9,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="Markdown.Avalonia" Version="12.0.0-a3" />
         <PackageReference Include="Material.Icons.Avalonia" Version="3.0.2" />
-        <PackageReference Include="KD.Avalonia.Rice" Version="26.10.19" />
+        <PackageReference Include="KD.Avalonia.Rice" Version="26.10.32" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\Corvida.Core\Corvida.Core.csproj" />

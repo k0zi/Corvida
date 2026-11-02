@@ -12,15 +12,17 @@ public partial class AgentsListViewModel : ViewModelBase
 {
     private readonly IAgentService _agentService;
     private readonly IDialogService _dialogService;
+    private readonly INotificationService _notifications;
     private readonly Action<Agent> _onEditAgent;
 
     [ObservableProperty]
     private ObservableCollection<Agent> _agents = new();
 
-    public AgentsListViewModel(IAgentService agentService, IDialogService dialogService, Action<Agent> onEditAgent)
+    public AgentsListViewModel(IAgentService agentService, IDialogService dialogService, INotificationService notifications, Action<Agent> onEditAgent)
     {
         _agentService = agentService;
         _dialogService = dialogService;
+        _notifications = notifications;
         _onEditAgent = onEditAgent;
     }
 
@@ -57,10 +59,11 @@ public partial class AgentsListViewModel : ViewModelBase
         {
             await _agentService.DeleteAgentAsync(agent.Id);
             Agents.Remove(agent);
+            _notifications.Success($"Agent '{agent.Name}' was deleted.");
         }
         catch (InvalidOperationException ex)
         {
-            await _dialogService.ShowConfirmDialogAsync("Cannot Delete Agent", ex.Message);
+            _notifications.Error(ex.Message, "Cannot Delete Agent");
         }
     }
 }

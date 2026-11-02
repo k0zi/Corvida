@@ -21,12 +21,13 @@ public partial class BoardEditorViewModel : ViewModelBase,
     private readonly ITaskService _taskService;
     private readonly IAgentService _agentService;
     private readonly IDialogService _dialogService;
+    private readonly INotificationService _notifications;
     private readonly Action _onBack;
     private readonly Action<KanbanTask> _onEditTask;
 
     public Board Board { get; }
 
-    // Column chrome (name, add-task, delete-group). Rows below carry the actual tasks —
+    // Column headers (name, delete-group). Rows below carry the actual tasks —
     // GroupCards[i] and every Rows[r].Cells[i] refer to the same column.
     [ObservableProperty]
     private ObservableCollection<GroupCardViewModel> _groupCards = new();
@@ -43,6 +44,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
         ITaskService taskService,
         IAgentService agentService,
         IDialogService dialogService,
+        INotificationService notifications,
         Action onBack,
         Action<KanbanTask> onEditTask)
     {
@@ -51,6 +53,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
         _taskService = taskService;
         _agentService = agentService;
         _dialogService = dialogService;
+        _notifications = notifications;
         _onBack = onBack;
         _onEditTask = onEditTask;
         _isReadOnly = board.IsArchived;
@@ -116,7 +119,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
     }
 
     private GroupCardViewModel CreateGroupCard(KanbanGroup group) =>
-        new(group, DeleteGroupAsync, AddTaskToGroupAsync, IsReadOnly);
+        new(group, DeleteGroupAsync, IsReadOnly);
 
     private SwimlaneCellViewModel CreateCell(KanbanGroup group, string? agentId) =>
         new(group, agentId, _onEditTask, TransferTaskAsync, AssignAgentAsync, DeleteTaskAsync, IsReadOnly);
@@ -254,7 +257,15 @@ public partial class BoardEditorViewModel : ViewModelBase,
         _ = _boardService.SaveBoardAsync(Board);
     }
 
-    public async Task MoveTaskAsync(KanbanTask task, SwimlaneCellViewModel source, SwimlaneCellViewModel target, int insertIndex)
+    /// <summary>
+    /// Moves <paramref name="task"/> to <paramref name="targetIndex"/> of <paramref name="target"/>, the
+    /// index it has after the move (as <c>RiceKanbanBoard.CardMoving</c> reports it).
+    /// </summary>
+    /// <remarks>
+    /// The cells change before the first await: the board selects and focuses the moved card as soon
+    /// as its CardMoving handler returns, so the card has to be in its new cell by then.
+    /// </remarks>
+    public async Task MoveTaskAsync(KanbanTask task, SwimlaneCellViewModel source, SwimlaneCellViewModel target, int targetIndex)
     {
         if (IsReadOnly) return;
 
@@ -263,39 +274,46 @@ public partial class BoardEditorViewModel : ViewModelBase,
             var currentIndex = source.Tasks.IndexOf(task);
             if (currentIndex < 0) return;
 
-            var effectiveIndex = Math.Clamp(
-                insertIndex > currentIndex ? insertIndex - 1 : insertIndex,
-                0, source.Tasks.Count - 1);
-            if (effectiveIndex == currentIndex) return;
+            var finalIndex = Math.Clamp(targetIndex, 0, source.Tasks.Count - 1);
+            if (finalIndex == currentIndex) return;
 
-            source.Tasks.Move(currentIndex, effectiveIndex);
+            source.Tasks.Move(currentIndex, finalIndex);
             SetCellOrder(Board, source.Group.Id, source.AgentId, source.Tasks.Select(t => t.Id).ToList());
-            await _boardService.SaveBoardAsync(Board);
+            await SaveMoveAsync(task: null);
             return;
         }
 
-        var groupChanged = source.Group.Id != target.Group.Id;
-        var agentChanged = source.AgentId != target.AgentId;
+        source.RemoveTask(task);
+        target.InsertTask(task, targetIndex);
 
-        if (groupChanged)
+        if (source.Group.Id != target.Group.Id)
         {
             source.Group.TaskIds.Remove(task.Id);
             task.GroupId = target.Group.Id;
             if (!target.Group.TaskIds.Contains(task.Id))
                 target.Group.TaskIds.Add(task.Id);
         }
-        if (agentChanged)
+        task.AssignedAgentId = target.AgentId;
+
+        RemoveFromCellOrders(Board, task.Id);
+        SetCellOrder(Board, target.Group.Id, target.AgentId, target.Tasks.Select(t => t.Id).ToList());
+
+        await SaveMoveAsync(task);
+    }
+
+    // The cells already show the move; when it cannot be saved, reload so they show what is stored.
+    private async Task SaveMoveAsync(KanbanTask? task)
+    {
+        try
         {
-            task.AssignedAgentId = target.AgentId;
+            if (task is not null) await _taskService.SaveTaskAsync(task);
+            await _boardService.SaveBoardAsync(Board);
         }
-
-        RelocateInCellOrders(Board, task.Id, target.Group.Id, target.AgentId, insertIndex);
-
-        await _taskService.SaveTaskAsync(task);
-        source.RemoveTask(task);
-        target.InsertTask(task, insertIndex);
-
-        await _boardService.SaveBoardAsync(Board);
+        catch (Exception ex)
+        {
+            _notifications.Error(ex.Message, "Could Not Move the Task");
+            await LoadAsync();
+        }
     }
 
     private async Task TransferTaskAsync(KanbanTask task, SwimlaneCellViewModel source)
@@ -343,14 +361,25 @@ public partial class BoardEditorViewModel : ViewModelBase,
             "Delete Task", $"Delete task '{task.Title}'?");
         if (!confirmed) return;
 
-        await _taskService.DeleteTaskAsync(Board.Id, task.Id);
-        source.Group.TaskIds.Remove(task.Id);
-        RemoveFromCellOrders(Board, task.Id);
-        await _boardService.SaveBoardAsync(Board);
+        try
+        {
+            await _taskService.DeleteTaskAsync(Board.Id, task.Id);
+            source.Group.TaskIds.Remove(task.Id);
+            RemoveFromCellOrders(Board, task.Id);
+            await _boardService.SaveBoardAsync(Board);
+        }
+        catch (Exception ex)
+        {
+            _notifications.Error(ex.Message, "Could Not Delete the Task");
+            return;
+        }
+
         source.RemoveTask(task);
+        _notifications.Success($"Task '{task.Title}' was deleted.");
     }
 
-    private async Task AddTaskToGroupAsync(KanbanGroup group)
+    /// <summary>Adds a task to one cell: its group, assigned to the agent of its lane (or nobody).</summary>
+    public async Task AddTaskToCellAsync(SwimlaneCellViewModel cell)
     {
         if (IsReadOnly) return;
 
@@ -361,19 +390,26 @@ public partial class BoardEditorViewModel : ViewModelBase,
         {
             Id = title + "-task-" + Guid.NewGuid().ToString("N")[..8],
             Title = title,
-            GroupId = group.Id,
+            GroupId = cell.Group.Id,
             BoardId = Board.Id,
+            AssignedAgentId = cell.AgentId,
             Created = DateTime.UtcNow,
         };
 
-        await _taskService.SaveTaskAsync(task);
-        group.TaskIds.Add(task.Id);
-        RelocateInCellOrders(Board, task.Id, group.Id, null);
-        await _boardService.SaveBoardAsync(Board);
+        try
+        {
+            await _taskService.SaveTaskAsync(task);
+            cell.Group.TaskIds.Add(task.Id);
+            RelocateInCellOrders(Board, task.Id, cell.Group.Id, cell.AgentId);
+            await _boardService.SaveBoardAsync(Board);
+        }
+        catch (Exception ex)
+        {
+            _notifications.Error(ex.Message, "Could Not Add the Task");
+            return;
+        }
 
-        var colIndex = GroupCards.ToList().FindIndex(c => c.Group.Id == group.Id);
-        var unassignedRow = Rows.First(r => r.AgentId is null);
-        unassignedRow.Cells[colIndex].AddTask(task);
+        cell.AddTask(task);
     }
 
     [RelayCommand]
@@ -458,12 +494,13 @@ public partial class BoardEditorViewModel : ViewModelBase,
             taskService: null!,
             agentService: null!,
             dialogService: null!,
+            notifications: null!,
             onBack: () => { },
             onEditTask: _ => { });
 
-        vm.GroupCards.Add(new GroupCardViewModel(todo, _ => Task.CompletedTask, _ => Task.CompletedTask, false));
-        vm.GroupCards.Add(new GroupCardViewModel(inProgress, _ => Task.CompletedTask, _ => Task.CompletedTask, false));
-        vm.GroupCards.Add(new GroupCardViewModel(done, _ => Task.CompletedTask, _ => Task.CompletedTask, false));
+        vm.GroupCards.Add(new GroupCardViewModel(todo, _ => Task.CompletedTask, false));
+        vm.GroupCards.Add(new GroupCardViewModel(inProgress, _ => Task.CompletedTask, false));
+        vm.GroupCards.Add(new GroupCardViewModel(done, _ => Task.CompletedTask, false));
 
         static SwimlaneCellViewModel MakeCell(KanbanGroup group, string? agentId) => new(
             group, agentId,
