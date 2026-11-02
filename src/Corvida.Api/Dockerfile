@@ -1,4 +1,6 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
+# The build stage runs on the runner's own architecture even for a multi-arch build: the output is
+# portable IL (API) or WebAssembly (Web), so emulating arm64 here would only make it slower.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 WORKDIR /src
 COPY src/Corvida.Core/Corvida.Core.csproj Corvida.Core/
 COPY src/Corvida.ServiceDefaults/Corvida.ServiceDefaults.csproj Corvida.ServiceDefaults/

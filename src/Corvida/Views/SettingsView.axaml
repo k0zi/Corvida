@@ -12,349 +12,465 @@
              x:DataType="vm:SettingsViewModel">
 
     <Grid Margin="16" RowDefinitions="Auto,*">
-        <TextBlock Grid.Row="0" Text="Settings" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,16" />
-        <ScrollViewer Grid.Row="1" AllowAutoHide="True">
-            <StackPanel Spacing="16">
-                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
-                    <StackPanel Spacing="16">
+        <TextBlock Grid.Row="0" Text="Settings" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TabControl Grid.Row="1">
 
-                        <!-- Storage Mode -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Storage Mode" FontWeight="Medium" />
-                            <TextBlock Text="Where boards and tasks are stored."
-                                       FontSize="12" Opacity="0.6" />
-                            <RadioButton Content="Local Folder" IsChecked="{Binding IsLocalFolder}" />
-                            <RadioButton Content="Server Hosted" IsChecked="{Binding IsServerHosted}" />
-                        </StackPanel>
+            <TabItem Header="General">
+                <ScrollViewer AllowAutoHide="True">
+                    <StackPanel Spacing="16" Margin="0,12,0,0">
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel Spacing="16">
 
-                        <!-- Data Path — LocalFolder mode only -->
-                        <StackPanel Spacing="6" IsVisible="{Binding IsLocalFolder}">
-                            <TextBlock Text="Data Path" FontWeight="Medium" />
-                            <TextBlock Text="The folder where boards and tasks are stored."
-                                       FontSize="12" Opacity="0.6" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding DataPath}" PlaceholderText="~/CorvidaData" />
-                                <Button Grid.Column="1" Click="BrowseFolder_Click" Classes="Basic">
-                                    <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Server URL — ServerHosted mode only -->
-                        <StackPanel Spacing="6" IsVisible="{Binding IsServerHosted}">
-                            <TextBlock Text="Server URL" FontWeight="Medium" />
-                            <TextBlock Text="Base URL of the Corvida API server (e.g. http://localhost:5000)."
-                                       FontSize="12" Opacity="0.6" />
-                            <TextBox Text="{Binding ServerUrl}" PlaceholderText="http://localhost:5000" />
-                        </StackPanel>
-
-                        <!-- Export — ServerHosted mode only -->
-                        <Button IsVisible="{Binding IsServerHosted}"
-                                Click="ExportToFolder_Click"
-                                Classes="Basic" HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <materialIcons:MaterialIcon Kind="Export" Width="16" Height="16" />
-                                <TextBlock Text="Export to Local Folder..." />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding SaveCommand}" Classes="accent" HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16" />
-                                <TextBlock Text="Save Settings" />
-                            </StackPanel>
-                        </Button>
-
-                    </StackPanel>
-                </rice:RiceCard>
-
-                <!-- Authentication — ServerHosted mode only -->
-                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
-                               IsVisible="{Binding IsServerHosted}">
-                    <StackPanel Spacing="16">
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Require Login" FontWeight="Medium" />
-                            <TextBlock Text="Controls who can reach this Corvida server. Off by default: anyone who can reach it has full access."
-                                       FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <StackPanel Spacing="10" IsVisible="{Binding AuthStateKnown}">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <materialIcons:MaterialIcon Width="18" Height="18"
-                                                            Kind="{Binding AuthRequired, Converter={x:Static conv:BoolToLockIconConverter.Instance}}" />
-                                <TextBlock VerticalAlignment="Center"
-                                           Text="{Binding AuthRequired, Converter={x:Static conv:BoolToAuthStateConverter.Instance}}" />
-                            </StackPanel>
-
-                            <Button IsVisible="{Binding !AuthRequired}"
-                                    Command="{Binding EnableAuthCommand}" Classes="accent"
-                                    HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <materialIcons:MaterialIcon Kind="Lock" Width="16" Height="16" />
-                                    <TextBlock Text="Turn on login" />
+                                <!-- Storage Mode -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Storage Mode" FontWeight="Medium" />
+                                    <TextBlock Text="Where boards and tasks are stored."
+                                               FontSize="12" Opacity="0.6" />
+                                    <RadioButton Content="Local Folder" IsChecked="{Binding IsLocalFolder}" />
+                                    <RadioButton Content="Server Hosted" IsChecked="{Binding IsServerHosted}" />
                                 </StackPanel>
-                            </Button>
 
-                            <TextBlock IsVisible="{Binding !AuthRequired}" FontSize="12" Opacity="0.6"
-                                       TextWrapping="Wrap"
-                                       Text="Whoever turns this on first becomes the only administrator, so do it right after installing the server." />
-
-                            <Button IsVisible="{Binding AuthRequired}"
-                                    Command="{Binding DisableAuthCommand}" Classes="Basic Danger"
-                                    HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <materialIcons:MaterialIcon Kind="LockOpenVariant" Width="16" Height="16" />
-                                    <TextBlock Text="Turn off login and delete all users" />
-                                </StackPanel>
-                            </Button>
-                        </StackPanel>
-
-                        <TextBlock IsVisible="{Binding AuthMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                   Text="{Binding AuthMessage}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
-
-                    </StackPanel>
-                </rice:RiceCard>
-
-                <!-- Access keys for non-interactive clients (MCP) -->
-                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
-                               IsVisible="{Binding CanManageApiKeys}">
-                    <StackPanel Spacing="16">
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Access Keys" FontWeight="Medium" />
-                            <TextBlock Text="The MCP server cannot show a login screen, so it authenticates with a key you generate here."
-                                       FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <!-- Shown once, right after creation: the raw key is never recoverable. -->
-                        <Border IsVisible="{Binding NewApiKey, Converter={x:Static ObjectConverters.IsNotNull}}"
-                                Background="#2266A80F" CornerRadius="6" Padding="12">
-                            <StackPanel Spacing="8">
-                                <TextBlock Text="Copy this key now — it cannot be shown again."
-                                           FontWeight="Medium" TextWrapping="Wrap" />
-                                <SelectableTextBlock Text="{Binding NewApiKey}" FontFamily="monospace"
-                                                     TextWrapping="Wrap" FontSize="12" />
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <Button Command="{Binding UseNewKeyForMcpCommand}" Classes="accent">
-                                        <TextBlock Text="Use for the MCP server" />
-                                    </Button>
-                                    <Button Command="{Binding DismissNewKeyCommand}" Classes="Basic">
-                                        <TextBlock Text="Done" />
-                                    </Button>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <ItemsControl ItemsSource="{Binding ApiKeys}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="services:ApiKeyInfo">
-                                    <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 6">
-                                        <StackPanel Grid.Column="0" Spacing="2">
-                                            <TextBlock Text="{Binding Name}" FontWeight="Medium" />
-                                            <TextBlock FontSize="11" Opacity="0.6"
-                                                       Text="{Binding LastUsedAt, StringFormat='Last used: {0}'}" />
-                                        </StackPanel>
-                                        <Button Grid.Column="1" Classes="Basic Danger"
-                                                Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).RevokeApiKeyCommand}"
-                                                CommandParameter="{Binding}">
-                                            <materialIcons:MaterialIcon Kind="Delete" Width="16" Height="16" />
+                                <!-- Data Path — LocalFolder mode only -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsLocalFolder}">
+                                    <TextBlock Text="Data Path" FontWeight="Medium" />
+                                    <TextBlock Text="The folder where boards and tasks are stored."
+                                               FontSize="12" Opacity="0.6" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding DataPath}" PlaceholderText="~/CorvidaData" />
+                                        <Button Grid.Column="1" Click="BrowseFolder_Click" Classes="Basic">
+                                            <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
                                         </Button>
                                     </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                </StackPanel>
 
-                        <Button Command="{Binding CreateApiKeyCommand}" Classes="accent"
-                                HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <materialIcons:MaterialIcon Kind="KeyPlus" Width="16" Height="16" />
-                                <TextBlock Text="Generate key" />
+                                <!-- Server URL — ServerHosted mode only -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsServerHosted}">
+                                    <TextBlock Text="Server URL" FontWeight="Medium" />
+                                    <TextBlock Text="Base URL of the Corvida API server (e.g. http://localhost:5000)."
+                                               FontSize="12" Opacity="0.6" />
+                                    <TextBox Text="{Binding ServerUrl}" PlaceholderText="http://localhost:5000" />
+                                </StackPanel>
+
+                                <!-- Export — ServerHosted mode only -->
+                                <Button IsVisible="{Binding IsServerHosted}"
+                                        Click="ExportToFolder_Click"
+                                        Classes="Basic" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <materialIcons:MaterialIcon Kind="Export" Width="16" Height="16" />
+                                        <TextBlock Text="Export to Local Folder..." />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Command="{Binding SaveCommand}" Classes="accent" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <materialIcons:MaterialIcon Kind="ContentSave" Width="16" Height="16" />
+                                        <TextBlock Text="Save Settings" />
+                                    </StackPanel>
+                                </Button>
+
                             </StackPanel>
-                        </Button>
+                        </rice:RiceCard>
 
+                        <!-- Authentication — ServerHosted mode only -->
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
+                                       IsVisible="{Binding IsServerHosted}">
+                            <StackPanel Spacing="16">
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Require Login" FontWeight="Medium" />
+                                    <TextBlock Text="Controls who can reach this Corvida server. Off by default: anyone who can reach it has full access."
+                                               FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="10" IsVisible="{Binding AuthStateKnown}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <materialIcons:MaterialIcon Width="18" Height="18"
+                                                                    Kind="{Binding AuthRequired, Converter={x:Static conv:BoolToLockIconConverter.Instance}}" />
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Text="{Binding AuthRequired, Converter={x:Static conv:BoolToAuthStateConverter.Instance}}" />
+                                    </StackPanel>
+
+                                    <Button IsVisible="{Binding !AuthRequired}"
+                                            Command="{Binding EnableAuthCommand}" Classes="accent"
+                                            HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <materialIcons:MaterialIcon Kind="Lock" Width="16" Height="16" />
+                                            <TextBlock Text="Turn on login" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <TextBlock IsVisible="{Binding !AuthRequired}" FontSize="12" Opacity="0.6"
+                                               TextWrapping="Wrap"
+                                               Text="Whoever turns this on first becomes the only administrator, so do it right after installing the server." />
+
+                                    <Button IsVisible="{Binding AuthRequired}"
+                                            Command="{Binding DisableAuthCommand}" Classes="Basic Danger"
+                                            HorizontalAlignment="Left">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <materialIcons:MaterialIcon Kind="LockOpenVariant" Width="16" Height="16" />
+                                            <TextBlock Text="Turn off login and delete all users" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+
+                                <TextBlock IsVisible="{Binding AuthMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                           Text="{Binding AuthMessage}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+
+                            </StackPanel>
+                        </rice:RiceCard>
+
+                        <!-- Access keys for non-interactive clients (MCP) -->
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left"
+                                       IsVisible="{Binding CanManageApiKeys}">
+                            <StackPanel Spacing="16">
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Access Keys" FontWeight="Medium" />
+                                    <TextBlock Text="The MCP server cannot show a login screen, so it authenticates with a key you generate here."
+                                               FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <!-- Shown once, right after creation: the raw key is never recoverable. -->
+                                <Border IsVisible="{Binding NewApiKey, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                        Background="#2266A80F" CornerRadius="6" Padding="12">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="Copy this key now — it cannot be shown again."
+                                                   FontWeight="Medium" TextWrapping="Wrap" />
+                                        <SelectableTextBlock Text="{Binding NewApiKey}" FontFamily="monospace"
+                                                             TextWrapping="Wrap" FontSize="12" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Button Command="{Binding UseNewKeyForMcpCommand}" Classes="accent">
+                                                <TextBlock Text="Use for the MCP server" />
+                                            </Button>
+                                            <Button Command="{Binding DismissNewKeyCommand}" Classes="Basic">
+                                                <TextBlock Text="Done" />
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <ItemsControl ItemsSource="{Binding ApiKeys}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="services:ApiKeyInfo">
+                                            <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 6">
+                                                <StackPanel Grid.Column="0" Spacing="2">
+                                                    <TextBlock Text="{Binding Name}" FontWeight="Medium" />
+                                                    <TextBlock FontSize="11" Opacity="0.6"
+                                                               Text="{Binding LastUsedAt, StringFormat='Last used: {0}'}" />
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Classes="Basic Danger"
+                                                        Command="{Binding $parent[ItemsControl].((vm:SettingsViewModel)DataContext).RevokeApiKeyCommand}"
+                                                        CommandParameter="{Binding}">
+                                                    <materialIcons:MaterialIcon Kind="Delete" Width="16" Height="16" />
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Command="{Binding CreateApiKeyCommand}" Classes="accent"
+                                        HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <materialIcons:MaterialIcon Kind="KeyPlus" Width="16" Height="16" />
+                                        <TextBlock Text="Generate key" />
+                                    </StackPanel>
+                                </Button>
+
+                            </StackPanel>
+                        </rice:RiceCard>
                     </StackPanel>
-                </rice:RiceCard>
+                </ScrollViewer>
+            </TabItem>
 
+            <!-- Everything Corvida can set up outside itself: the server, and its pieces in AI tools. -->
+            <TabItem Header="Install">
+                <ScrollViewer AllowAutoHide="True">
+                    <StackPanel Spacing="16" Margin="0,12,0,0">
+                        <!-- Corvida server on this computer, as rootless Podman containers -->
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel Spacing="16">
 
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Corvida Server (Podman)" FontWeight="Medium" />
+                                    <TextBlock Text="Runs the API, the web UI and PostgreSQL on this computer as rootless Podman containers (systemd user services). Other devices on the network can use it at this computer's address. Podman keeps the images up to date."
+                                               FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                                </StackPanel>
 
-                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
-                    <StackPanel Spacing="16">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                    <materialIcons:MaterialIcon Grid.Column="0" Kind="Server" Width="18" Height="18" VerticalAlignment="Top" />
+                                    <SelectableTextBlock Grid.Column="1" Text="{Binding ServerStatusText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                                    <Button Grid.Column="2" Command="{Binding RefreshServerStatusCommand}" Classes="Basic"
+                                            ToolTip.Tip="Refresh" IsEnabled="{Binding IsServerIdle}">
+                                        <materialIcons:MaterialIcon Kind="Refresh" Width="16" Height="16" />
+                                    </Button>
+                                </Grid>
 
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Install Skills" FontWeight="Medium" />
-                            <TextBlock Text="Install the Corvida Kanban skills into an AI tool's skills folder."
-                                       FontSize="12" Opacity="0.6" />
-                        </StackPanel>
+                                <!-- Podman is a system package: installing it needs root, so the app only says how. -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsPodmanMissing}">
+                                    <TextBlock Text="Install Podman with your package manager, then press Refresh:"
+                                               FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+                                    <SelectableTextBlock FontFamily="monospace" FontSize="12" TextWrapping="Wrap"
+                                                         Text="sudo apt install podman    # Debian, Ubuntu&#10;sudo dnf install podman    # Fedora, RHEL&#10;sudo zypper install podman # openSUSE" />
+                                </StackPanel>
 
-                        <!-- Claude Code -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Claude Code" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding ClaudeCodeSkillsPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeSkillsInstalled}"
-                                        Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeSkillsInstalled}"
-                                        Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
+                                <StackPanel Spacing="12" IsVisible="{Binding CanInstallServer}">
+                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                        <StackPanel Grid.Column="0" Spacing="4">
+                                            <TextBlock Text="Web UI port" FontSize="12" />
+                                            <NumericUpDown Value="{Binding ServerWebPort}" Minimum="1024" Maximum="65535" Increment="1" FormatString="0" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="4">
+                                            <TextBlock Text="Web UI HTTPS port" FontSize="12" />
+                                            <NumericUpDown Value="{Binding ServerWebHttpsPort}" Minimum="1024" Maximum="65535" Increment="1" FormatString="0" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Spacing="4">
+                                            <TextBlock Text="API port" FontSize="12" />
+                                            <NumericUpDown Value="{Binding ServerApiPort}" Minimum="1024" Maximum="65535" Increment="1" FormatString="0" />
+                                        </StackPanel>
+                                    </Grid>
 
-                        <!-- OpenCode -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="OpenCode" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding OpencodeSkillsPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !OpencodeSkillsInstalled}"
-                                        Command="{Binding ToggleOpencodeSkillsCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding OpencodeSkillsInstalled}"
-                                        Command="{Binding ToggleOpencodeSkillsCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Host name" FontSize="12" />
+                                        <TextBox Text="{Binding ServerWebHost}" PlaceholderText="localhost" />
+                                        <TextBlock Text="The name other devices use to reach this computer. It goes into the self-signed HTTPS certificate, which is created on the first start only."
+                                                   FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                                    </StackPanel>
 
-                        <!-- Hermes -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Hermes" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding HermesSkillsPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !HermesSkillsInstalled}"
-                                        Command="{Binding ToggleHermesSkillsCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding HermesSkillsInstalled}"
-                                        Command="{Binding ToggleHermesSkillsCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
+                                    <StackPanel Spacing="6" IsVisible="{Binding ServerBusy}">
+                                        <ProgressBar IsIndeterminate="True" />
+                                        <TextBlock Text="{Binding ServerProgress}" FontSize="12" Opacity="0.7" TextWrapping="Wrap" />
+                                    </StackPanel>
 
+                                    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8">
+                                        <Button Command="{Binding InstallServerCommand}" Classes="accent">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <materialIcons:MaterialIcon Kind="Download" Width="16" Height="16" />
+                                                <TextBlock Text="{Binding ServerInstallLabel}" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding StartServerCommand}" Classes="Basic" IsVisible="{Binding IsServerStopped}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <materialIcons:MaterialIcon Kind="Play" Width="16" Height="16" />
+                                                <TextBlock Text="Start" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding StopServerCommand}" Classes="Basic" IsVisible="{Binding IsServerRunning}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <materialIcons:MaterialIcon Kind="Stop" Width="16" Height="16" />
+                                                <TextBlock Text="Stop" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding OpenServerWebUiCommand}" Classes="Basic" IsVisible="{Binding IsServerRunning}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <materialIcons:MaterialIcon Kind="OpenInNew" Width="16" Height="16" />
+                                                <TextBlock Text="Open web UI" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding UseLocalServerCommand}" Classes="Basic" IsVisible="{Binding IsServerInstalled}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <materialIcons:MaterialIcon Kind="LanConnect" Width="16" Height="16" />
+                                                <TextBlock Text="Use this server" />
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+
+                                    <StackPanel Spacing="8" IsVisible="{Binding IsServerInstalled}">
+                                        <Separator />
+                                        <CheckBox IsChecked="{Binding ServerDeleteData}"
+                                                  Content="Also delete the server data (boards, tasks, agents, users)" />
+                                        <Button Command="{Binding UninstallServerCommand}" Classes="Basic Danger" HorizontalAlignment="Left">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <materialIcons:MaterialIcon Kind="Delete" Width="16" Height="16" />
+                                                <TextBlock Text="Uninstall server" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </rice:RiceCard>
+
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel Spacing="16">
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="MCP Server" FontWeight="Medium" />
+                                    <TextBlock Text="Register the Corvida MCP server with an AI tool so it can manage your boards directly."
+                                               FontSize="12" Opacity="0.6" />
+                                </StackPanel>
+
+                                <!-- Shared MCP project path -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="MCP Server Project Path" FontWeight="Medium" />
+                                    <TextBlock Text="Only for running the MCP server from a source checkout: the path to Corvida.Mcp.csproj. Leave it empty to use the MCP server that ships with Corvida."
+                                               TextWrapping="Wrap"
+                                               FontSize="12" Opacity="0.6" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding McpProjectPath}" PlaceholderText="/path/to/src/Corvida.Mcp/Corvida.Mcp.csproj" />
+                                        <Button Grid.Column="1" Click="BrowseMcpProject_Click" Classes="Basic">
+                                            <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Claude Code -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Claude Code" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding ClaudeCodeMcpConfigPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeMcpInstalled}"
+                                                Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeMcpInstalled}"
+                                                Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- OpenCode -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="OpenCode" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding OpencodeMcpConfigPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !OpencodeMcpInstalled}"
+                                                Command="{Binding ToggleOpencodeMcpCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding OpencodeMcpInstalled}"
+                                                Command="{Binding ToggleOpencodeMcpCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Hermes -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Hermes" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding HermesMcpConfigPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !HermesMcpInstalled}"
+                                                Command="{Binding ToggleHermesMcpCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding HermesMcpInstalled}"
+                                                Command="{Binding ToggleHermesMcpCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </rice:RiceCard>
+
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel Spacing="16">
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Skills" FontWeight="Medium" />
+                                    <TextBlock Text="Install the Corvida Kanban skills into an AI tool's skills folder."
+                                               FontSize="12" Opacity="0.6" />
+                                </StackPanel>
+
+                                <!-- Claude Code -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Claude Code" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding ClaudeCodeSkillsPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeSkillsInstalled}"
+                                                Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeSkillsInstalled}"
+                                                Command="{Binding ToggleClaudeCodeSkillsCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- OpenCode -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="OpenCode" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding OpencodeSkillsPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !OpencodeSkillsInstalled}"
+                                                Command="{Binding ToggleOpencodeSkillsCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding OpencodeSkillsInstalled}"
+                                                Command="{Binding ToggleOpencodeSkillsCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Hermes -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Hermes" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding HermesSkillsPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !HermesSkillsInstalled}"
+                                                Command="{Binding ToggleHermesSkillsCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding HermesSkillsInstalled}"
+                                                Command="{Binding ToggleHermesSkillsCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </rice:RiceCard>
+
+                        <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
+                            <StackPanel Spacing="16">
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Agents" FontWeight="Medium" />
+                                    <TextBlock Text="Install the current Corvida agents as subagents into an AI tool's agents folder, in that tool's own format. Each agent's Personality becomes the subagent's system prompt."
+                                               FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
+                                </StackPanel>
+
+                                <!-- Claude Code -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="Claude Code" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding ClaudeCodeAgentsPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeAgentsInstalled}"
+                                                Command="{Binding ToggleClaudeCodeAgentsCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeAgentsInstalled}"
+                                                Command="{Binding ToggleClaudeCodeAgentsCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- OpenCode -->
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="OpenCode" FontWeight="Medium" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <TextBox Grid.Column="0" Text="{Binding OpencodeAgentsPath}" />
+                                        <Button Grid.Column="1" IsVisible="{Binding !OpencodeAgentsInstalled}"
+                                                Command="{Binding ToggleOpencodeAgentsCommand}" Classes="accent">
+                                            <TextBlock Text="Install" />
+                                        </Button>
+                                        <Button Grid.Column="1" IsVisible="{Binding OpencodeAgentsInstalled}"
+                                                Command="{Binding ToggleOpencodeAgentsCommand}" Classes="Basic Danger">
+                                            <TextBlock Text="Uninstall" />
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </rice:RiceCard>
                     </StackPanel>
-                </rice:RiceCard>
+                </ScrollViewer>
+            </TabItem>
 
-                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
-                    <StackPanel Spacing="16">
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Install Agents" FontWeight="Medium" />
-                            <TextBlock Text="Install the current Corvida agents as subagents into an AI tool's agents folder, in that tool's own format. Each agent's Personality becomes the subagent's system prompt."
-                                       FontSize="12" Opacity="0.6" TextWrapping="Wrap" />
-                        </StackPanel>
-
-                        <!-- Claude Code -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Claude Code" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding ClaudeCodeAgentsPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeAgentsInstalled}"
-                                        Command="{Binding ToggleClaudeCodeAgentsCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeAgentsInstalled}"
-                                        Command="{Binding ToggleClaudeCodeAgentsCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- OpenCode -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="OpenCode" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding OpencodeAgentsPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !OpencodeAgentsInstalled}"
-                                        Command="{Binding ToggleOpencodeAgentsCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding OpencodeAgentsInstalled}"
-                                        Command="{Binding ToggleOpencodeAgentsCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                    </StackPanel>
-                </rice:RiceCard>
-
-                <rice:RiceCard Padding="20" MaxWidth="600" HorizontalAlignment="Left">
-                    <StackPanel Spacing="16">
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Install MCP Server" FontWeight="Medium" />
-                            <TextBlock Text="Register the Corvida MCP server with an AI tool so it can manage your boards directly."
-                                       FontSize="12" Opacity="0.6" />
-                        </StackPanel>
-
-                        <!-- Shared MCP project path -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="MCP Server Project Path" FontWeight="Medium" />
-                            <TextBlock Text="Path to Corvida.Mcp.csproj, used when installing to any of the tools below."
-                                       FontSize="12" Opacity="0.6" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding McpProjectPath}" PlaceholderText="/path/to/src/Corvida.Mcp/Corvida.Mcp.csproj" />
-                                <Button Grid.Column="1" Click="BrowseMcpProject_Click" Classes="Basic">
-                                    <materialIcons:MaterialIcon Kind="FolderOpen" Width="18" Height="18" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Claude Code -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Claude Code" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding ClaudeCodeMcpConfigPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !ClaudeCodeMcpInstalled}"
-                                        Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding ClaudeCodeMcpInstalled}"
-                                        Command="{Binding ToggleClaudeCodeMcpCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- OpenCode -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="OpenCode" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding OpencodeMcpConfigPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !OpencodeMcpInstalled}"
-                                        Command="{Binding ToggleOpencodeMcpCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding OpencodeMcpInstalled}"
-                                        Command="{Binding ToggleOpencodeMcpCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Hermes -->
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Hermes" FontWeight="Medium" />
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                <TextBox Grid.Column="0" Text="{Binding HermesMcpConfigPath}" />
-                                <Button Grid.Column="1" IsVisible="{Binding !HermesMcpInstalled}"
-                                        Command="{Binding ToggleHermesMcpCommand}" Classes="accent">
-                                    <TextBlock Text="Install" />
-                                </Button>
-                                <Button Grid.Column="1" IsVisible="{Binding HermesMcpInstalled}"
-                                        Command="{Binding ToggleHermesMcpCommand}" Classes="Basic Danger">
-                                    <TextBlock Text="Uninstall" />
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-
-                    </StackPanel>
-                </rice:RiceCard>
-            </StackPanel>
-        </ScrollViewer>
+        </TabControl>
     </Grid>
 </UserControl>

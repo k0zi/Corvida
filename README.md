@@ -22,6 +22,7 @@ Corvida is a Kanban board manager built around a shared core: a desktop client, 
 - [Features](#features)
 - [Architecture](#architecture)
 - [Installation](#installation)
+  - [Linux Packages (.deb / .rpm)](#linux-packages-deb--rpm)
   - [Desktop App](#desktop-app)
   - [REST API](#rest-api)
   - [MCP Server](#mcp-server)
@@ -76,6 +77,47 @@ The desktop and browser clients share one UI in `Corvida.Shared`. The desktop ap
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Docker](https://www.docker.com/) or [Podman](https://podman.io/) — needed to run `Corvida.Api` in a container, and for the API integration tests
 
+### Linux Packages (.deb / .rpm)
+
+Corvida ships as one native, self-contained package, `corvida` (no .NET runtime needed on the target):
+
+| Contents | Installs to |
+|---|---|
+| Desktop app, menu entry, icon | `/usr/lib/corvida`, `/usr/bin/corvida` |
+| MCP server (stdio) for AI tools | `/usr/lib/corvida/mcp`, `/usr/bin/corvida-mcp` |
+
+The server — API, web UI and PostgreSQL — is not a package: it runs in Podman containers, installed
+from the app's **Settings → Install** tab or by hand (see [REST API](#rest-api)).
+
+Build it, as both `.deb` and `.rpm`, into `artifacts/packages/`:
+
+```bash
+packaging/build-packages.sh                     # tests, then both formats
+packaging/build-packages.sh --skip-tests deb    # .deb only
+```
+
+A Release publish of the desktop app (`dotnet publish src/Corvida/Corvida.csproj -c Release`) runs the
+same script, so a new version always produces both files. The build needs the .NET 10 SDK and
+`curl`; the packager ([nfpm](https://nfpm.goreleaser.com/)) is downloaded into `artifacts/tools/` on
+first use, so neither `dpkg-deb` nor `rpmbuild` is required.
+
+To build and install with the distribution's package manager (apt, dnf or zypper):
+
+```bash
+packaging/install.sh                    # build and install
+packaging/install.sh --uninstall        # remove it
+```
+
+**Versioning.** Versions are `<year>.<month>.<git height>` (e.g. `26.11.3`) via
+[Nerdbank.GitVersioning](https://github.com/dotnet/Nerdbank.GitVersioning): `version.json` holds the
+year and month, and every commit after it raises the last number. When the month changes,
+`build-packages.sh` updates `version.json` — commit that change. Builds from a branch other than
+`main` or a `v*` tag get a `~g<commit>` suffix, which sorts before the release of the same version.
+
+**MCP server.** Leave *MCP Server Project Path* empty on the **Settings → Install** tab and the app
+registers the bundled `/usr/bin/corvida-mcp` with your AI tools; the path is only for running it from
+a source checkout with `dotnet run`.
+
 ### Desktop App
 
 ```bash
@@ -86,11 +128,7 @@ dotnet run --project Corvida/Corvida
 
 By default the app stores boards and tasks locally under `~/CorvidaData/` — no server required.
 
-To install a standalone build:
-
-```bash
-dotnet publish Corvida/Corvida/Corvida.csproj -c Release -o /path/to/install/dir
-```
+To install it system-wide, use the `corvida` package — see [Linux Packages](#linux-packages-deb--rpm).
 
 ### REST API
 
@@ -119,6 +157,38 @@ This builds the API image and starts it alongside PostgreSQL, exposing the API o
 > ```
 > Not needed if you use `podman compose` directly, or the `install.sh` script above.
 
+#### Podman Quadlet (prebuilt images, no checkout)
+
+**From the desktop app (Linux):** open **Settings → Install → Corvida Server (Podman)**, choose the
+ports and press *Install*. The app writes the units below with your ports, creates the database
+password, downloads the images, starts the server and offers to switch itself over to it. It needs
+Podman 4.4 or newer but no root; if Podman is missing it shows the command to install it. The same
+card starts, stops, reconfigures and uninstalls the server (keeping its data unless you tick the box).
+
+**By hand** — e.g. on a headless server:
+
+Every `v*` tag publishes `ghcr.io/k0zi/corvida-api` and `ghcr.io/k0zi/corvida-web` (amd64 + arm64)
+with the same version as the `.deb`/`.rpm` packages; `main` publishes `:edge`. The units in
+[`packaging/quadlet/`](packaging/quadlet/) run them, plus PostgreSQL, as rootless systemd services
+(Podman 4.4 or newer):
+
+```bash
+mkdir -p ~/.config/containers/systemd
+cp packaging/quadlet/* ~/.config/containers/systemd/
+openssl rand -base64 24 | tr -d '\n' | podman secret create corvida-db-password -
+systemctl --user daemon-reload
+systemctl --user start corvida-web     # pulls in corvida-api and corvida-db
+loginctl enable-linger "$USER"         # keep running after logout / start at boot
+```
+
+The web UI is on `http://localhost:8183` and `https://localhost:8283`, the API on `:5083`. Ports,
+`CORVIDA_WEB_HOST` and the allowed CORS origins are set in the `.container` files; run
+`systemctl --user daemon-reload` after editing them. For a system-wide install, copy the files to
+`/etc/containers/systemd/` and drop `--user`.
+
+`podman auto-update` pulls newer `:latest` images and restarts the services. Enable
+`podman-auto-update.timer` (`systemctl --user enable --now podman-auto-update.timer`) to do it daily.
+
 Alternatively, run everything locally with **.NET Aspire** for a dashboard and hot reload during development:
 
 ```bash
@@ -136,8 +206,11 @@ The desktop app can write all of the configs below for you — see
 **Claude Code** — register it globally so it's available in every project:
 
 ```bash
+claude mcp add -s user corvida -- corvida-mcp     # with the corvida package installed
 claude mcp add -s user corvida -- dotnet run -c Release --project /path/to/src/Corvida.Mcp/Corvida.Mcp.csproj
 ```
+
+In the configs below, `"command": "corvida-mcp"` with no `args` does the same for the packaged server.
 
 **Claude Desktop** — add it to `~/.config/claude/claude_desktop_config.json`:
 
@@ -210,15 +283,15 @@ is then a separate origin, which the API's default CORS list already allows.
 
 ## AI Tool Integration
 
-Beyond the MCP server, the desktop app's **Settings** page can write Corvida's own content into the
+Beyond the MCP server, the desktop app's **Settings → Install** tab can write Corvida's own content into the
 config folders of the AI tools you already use. Each entry has an editable target path and an
 Install / Uninstall pair, so nothing is written anywhere you did not point it at.
 
 | Section | What it writes | Default targets |
 |---|---|---|
-| **Install Skills** | The Kanban skills (`corvida-plan`, `corvida-implement`) as `SKILL.md` + `agents/openai.yaml` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.hermes/skills` |
-| **Install Agents** | Every Corvida agent as a subagent definition, in that tool's own format | `~/.claude/agents`, `~/.config/opencode/agent` |
-| **Install MCP Server** | A single `corvida` entry merged into the tool's existing config file | `~/.claude.json`, `~/.config/opencode/opencode.json`, `~/.hermes/config.yaml` |
+| **Skills** | The Kanban skills (`corvida-plan`, `corvida-implement`) as `SKILL.md` + `agents/openai.yaml` | `~/.claude/skills`, `~/.config/opencode/skills`, `~/.hermes/skills` |
+| **Agents** | Every Corvida agent as a subagent definition, in that tool's own format | `~/.claude/agents`, `~/.config/opencode/agent` |
+| **MCP Server** | A single `corvida` entry merged into the tool's existing config file | `~/.claude.json`, `~/.config/opencode/opencode.json`, `~/.hermes/config.yaml` |
 
 A few things worth knowing:
 

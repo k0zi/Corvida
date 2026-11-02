@@ -5,7 +5,6 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <Version>1.0.0</Version>
     </PropertyGroup>
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
@@ -13,6 +12,11 @@
     <ItemGroup>
         <None Include="Skills\**" CopyToOutputDirectory="PreserveNewest" />
         <None Include="Agents\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+    <ItemGroup>
+        <!-- The Quadlet units the Settings page installs (PodmanServerInstaller). Embedded from packaging/quadlet/
+             so the app and a manual install from the README use the very same files. -->
+        <EmbeddedResource Include="..\..\packaging\quadlet\*" LogicalName="Corvida.Quadlet.%(Filename)%(Extension)" />
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="12.1.3" />
@@ -40,9 +44,10 @@
       <ProjectReference Include="..\Corvida.Shared\Corvida.Shared.csproj" />
     </ItemGroup>
 
-    <!-- Builds a self-contained linux-x64 .deb package after every Release publish. -->
-    <Target Name="CreateDebPackage" AfterTargets="Publish" Condition="'$(Configuration)'=='Release' AND '$(SkipDebPackaging)'!='true' AND $([MSBuild]::IsOSPlatform('Linux'))">
-        <Exec Command="dotnet publish &quot;$(MSBuildProjectFullPath)&quot; -c Release -r linux-x64 --self-contained true -p:SkipDebPackaging=true -o &quot;$(MSBuildProjectDirectory)/bin/Release/deb-staging&quot;" />
-        <Exec Command="bash &quot;$(MSBuildProjectDirectory)/Packaging/build-deb.sh&quot; &quot;$(MSBuildProjectDirectory)/bin/Release/deb-staging&quot; $(Version) &quot;$(MSBuildProjectDirectory)/bin/Release/deb&quot; &quot;$(MSBuildProjectDirectory)&quot;" />
+    <!-- A Release publish also builds the Linux package (desktop app + MCP server; .deb and .rpm)
+         into artifacts/packages/ at the repository root. packaging/build-packages.sh is the real entry point
+         and publishes each project itself, passing SkipLinuxPackaging=true so it does not recurse back here. -->
+    <Target Name="CreateLinuxPackages" AfterTargets="Publish" Condition="'$(Configuration)'=='Release' AND '$(SkipLinuxPackaging)'!='true' AND $([MSBuild]::IsOSPlatform('Linux'))">
+        <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../../packaging/build-packages.sh&quot; --no-bump --skip-tests" />
     </Target>
 </Project>

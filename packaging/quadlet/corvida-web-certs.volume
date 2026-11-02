@@ -1,0 +1,4 @@
+# The web container's TLS certificate. A self-signed one is generated here on first start; replace
+# corvida.crt / corvida.key in this volume with a real certificate to stop the browser warning.
+[Volume]
+VolumeName=corvida-web-certs

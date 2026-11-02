@@ -429,3 +429,6 @@ FodyWeavers.xsd
 *.msp
 /src/.idea
 /src/.claude
+
+# Linux packaging output (packaging/build-packages.sh)
+artifacts/

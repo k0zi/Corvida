@@ -20,6 +20,7 @@ public partial class SettingsViewModel : PageBase
     private readonly IMcpInstallerService _mcpInstallerService;
     private readonly IAuthClient _authClient;
     private readonly IApiKeyService _apiKeyService;
+    private readonly IServerInstallerService _serverInstaller;
     private Func<Task>? _onSaved;
     private Func<Task>? _onAuthChanged;
 
@@ -60,8 +61,9 @@ public partial class SettingsViewModel : PageBase
     public override MaterialIconKind Icon => MaterialIconKind.Cog;
     public override int DisplayOrder => 99;
 
-    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService, IAuthClient authClient, IApiKeyService apiKeyService)
+    public SettingsViewModel(ISettingsService settingsService, IDialogService dialogService, IExportService exportService, ISkillInstallerService skillInstallerService, IAgentInstallerService agentInstallerService, IMcpInstallerService mcpInstallerService, IAuthClient authClient, IApiKeyService apiKeyService, IServerInstallerService serverInstaller)
     {
+        _serverInstaller = serverInstaller;
         _authClient = authClient;
         _apiKeyService = apiKeyService;
         _settingsService = settingsService;
@@ -85,6 +87,7 @@ public partial class SettingsViewModel : PageBase
         _hermesMcpInstalled = _mcpInstallerService.IsInstalled(McpTarget.Hermes, HermesMcpConfigPath);
 
         _ = RefreshAgentInstallStateAsync();
+        _ = LoadServerStateAsync();
     }
 
     partial void OnClaudeCodeSkillsPathChanged(string value) => ClaudeCodeSkillsInstalled = _skillInstallerService.IsInstalled(value);
@@ -245,9 +248,11 @@ public partial class SettingsViewModel : PageBase
 
     private async Task ToggleMcpInstallAsync(McpTarget target, string configPath, Action<bool> setInstalled)
     {
-        if (string.IsNullOrWhiteSpace(McpProjectPath) && !_mcpInstallerService.IsInstalled(target, configPath))
+        if (string.IsNullOrWhiteSpace(McpProjectPath) && _mcpInstallerService.BundledServerPath is null
+            && !_mcpInstallerService.IsInstalled(target, configPath))
         {
-            await _dialogService.ShowConfirmDialogAsync("MCP Server Install Failed", "Set the MCP server project path first.");
+            await _dialogService.ShowConfirmDialogAsync("MCP Server Install Failed",
+                "This is a source build without a bundled MCP server. Set the path to Corvida.Mcp.csproj first.");
             return;
         }
 

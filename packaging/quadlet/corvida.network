@@ -1,0 +1,4 @@
+# Private network for the Corvida containers. Podman's DNS on a user-defined network is what lets the
+# API reach the database as "db" and nginx reach the API as "api".
+[Network]
+NetworkName=corvida

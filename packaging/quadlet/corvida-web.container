@@ -1,0 +1,25 @@
+[Unit]
+Description=Corvida web UI
+# nginx resolves the "api" upstream once at startup and refuses to start if it cannot.
+Requires=corvida-api.service
+After=corvida-api.service
+
+[Container]
+ContainerName=corvida-web
+Image=ghcr.io/k0zi/corvida-web:latest
+AutoUpdate=registry
+Network=corvida.network
+PublishPort=8183:80
+PublishPort=8283:443
+# Put into the self-signed certificate's subject on first start: the name browsers use to reach it.
+Environment=CORVIDA_WEB_HOST=localhost
+Volume=corvida-web-certs.volume:/etc/nginx/certs
+
+[Service]
+Restart=always
+RestartSec=5
+# The first start pulls the image, which can take far longer than systemd's default 90 s start timeout.
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

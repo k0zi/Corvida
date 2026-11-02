@@ -58,6 +58,7 @@ public partial class App : Application
             services.AddSingleton<ISkillService, SkillService>();
             services.AddSingleton<IAgentInstallerService, AgentInstallerService>();
             services.AddSingleton<IMcpInstallerService, McpInstallerService>();
+            services.AddSingleton<IServerInstallerService, PodmanServerInstaller>();
             services.AddSingleton<IRealtimeClient, SignalRRealtimeClient>();
 
             // Authentication. The token lives in memory only, so closing the app signs out.

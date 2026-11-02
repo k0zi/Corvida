@@ -1,0 +1,31 @@
+[Unit]
+Description=Corvida PostgreSQL database
+
+[Container]
+ContainerName=corvida-db
+Image=docker.io/library/postgres:17-alpine
+AutoUpdate=registry
+Network=corvida.network
+# NetworkAlias= would say this more plainly, but Quadlet only accepts it from Podman 5.0 on, and
+# Ubuntu 24.04 ships 4.9.
+PodmanArgs=--network-alias=db
+Volume=corvida-db.volume:/var/lib/postgresql/data
+Environment=POSTGRES_DB=corvida
+Environment=POSTGRES_USER=postgres
+# Create once, before the first start (the database takes its password from it on initialisation):
+#   openssl rand -base64 24 | tr -d '\n' | podman secret create corvida-db-password -
+# The `tr` matters: a trailing newline becomes part of the password, and the API's copy of it then
+# fails to authenticate.
+Secret=corvida-db-password,type=env,target=POSTGRES_PASSWORD
+HealthCmd=pg_isready -U postgres -d corvida
+HealthInterval=5s
+HealthTimeout=5s
+HealthRetries=10
+
+[Service]
+Restart=always
+# The first start pulls the image, which can take far longer than systemd's default 90 s start timeout.
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

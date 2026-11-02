@@ -16,6 +16,10 @@ public class McpInstallerService : IMcpInstallerService
 {
     private const string ServerName = "corvida";
 
+    // Launcher symlink installed by the corvida .deb/.rpm (packaging/nfpm.yaml). Preferred over the real
+    // path below it because it is what a user would type, and it survives a change of install layout.
+    private const string PackagedServerPath = "/usr/bin/corvida-mcp";
+
     private static readonly IDeserializer YamlDeserializer = new DeserializerBuilder().Build();
     private static readonly ISerializer YamlSerializer = new SerializerBuilder().Build();
 
@@ -40,26 +44,43 @@ public class McpInstallerService : IMcpInstallerService
         }
     }
 
+    public string? BundledServerPath
+    {
+        get
+        {
+            if (OperatingSystem.IsLinux() && File.Exists(PackagedServerPath))
+                return PackagedServerPath;
+
+            // The package lays the server out as mcp/ beside the app; a portable copy does the same.
+            var beside = Path.Combine(AppContext.BaseDirectory, "mcp",
+                OperatingSystem.IsWindows() ? "Corvida.Mcp.exe" : "Corvida.Mcp");
+            return File.Exists(beside) ? beside : null;
+        }
+    }
+
     public void Install(McpTarget target, string configPath, string mcpProjectPath)
     {
         var path = PathUtil.Expand(configPath);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        var (command, args) = ServerCommand(mcpProjectPath);
 
         switch (target)
         {
             case McpTarget.ClaudeCode:
                 WriteJson(path, "mcpServers", new JsonObject
                 {
-                    ["command"] = "dotnet",
-                    ["args"] = JsonStringArray("run", "-c", "Release", "--project", mcpProjectPath),
+                    ["command"] = command,
+                    ["args"] = JsonStringArray(args),
                 });
                 break;
 
             case McpTarget.OpenCode:
+                // OpenCode takes the executable and its arguments as one array.
                 WriteJson(path, "mcp", new JsonObject
                 {
                     ["type"] = "local",
-                    ["command"] = JsonStringArray("dotnet", "run", "-c", "Release", "--project", mcpProjectPath),
+                    ["command"] = JsonStringArray([command, .. args]),
                     ["enabled"] = true,
                 });
                 break;
@@ -68,8 +89,8 @@ public class McpInstallerService : IMcpInstallerService
                 var root = LoadYamlRoot(path);
                 YamlContainer(root)[ServerName] = new Dictionary<object, object>
                 {
-                    ["command"] = "dotnet",
-                    ["args"] = new List<object> { "run", "-c", "Release", "--project", mcpProjectPath },
+                    ["command"] = command,
+                    ["args"] = args.Cast<object>().ToList(),
                 };
                 File.WriteAllText(path, YamlSerializer.Serialize(root));
                 break;
@@ -97,6 +118,16 @@ public class McpInstallerService : IMcpInstallerService
                     File.WriteAllText(path, YamlSerializer.Serialize(root));
                 break;
         }
+    }
+
+    // A project path means a source checkout run through the SDK; without one, the bundled server.
+    private (string Command, string[] Args) ServerCommand(string mcpProjectPath)
+    {
+        if (!string.IsNullOrWhiteSpace(mcpProjectPath))
+            return ("dotnet", ["run", "-c", "Release", "--project", mcpProjectPath]);
+
+        return (BundledServerPath ?? throw new InvalidOperationException(
+            "This build of Corvida has no bundled MCP server (it is a source build). Set the path to Corvida.Mcp.csproj."), []);
     }
 
     private static JsonArray JsonStringArray(params string[] values) =>

@@ -1,0 +1,4 @@
+# PostgreSQL data: every board, task and agent. Survives container updates and removal;
+# `podman volume rm corvida-db` is what deletes it.
+[Volume]
+VolumeName=corvida-db

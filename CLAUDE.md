@@ -126,7 +126,7 @@ Every top-level menu page implements `PageBase` (`MenuTitle`, `Icon`, `DisplayOr
 | 10 | `AgentsPageViewModel` | `AgentsListViewModel`, `AgentEditorViewModel` — CRUD over `Agent` |
 | 20 | `SkillsPageViewModel` | `SkillsListViewModel`, `SkillEditorViewModel` — CRUD over `Skill` (see [Skills](#skills-corvida)) |
 | 50 | `ArchivedBoardsViewModel` | read-only list of archived boards |
-| 99 | `SettingsViewModel` | storage mode, data path, skill/agent/MCP installers, export |
+| 99 | `SettingsViewModel` | General tab: storage mode, data path, login, access keys, export. Install tab: Podman server, MCP, skill and agent installers (partials `SettingsViewModel.*.cs`) |
 
 Each list/editor pair follows the same shape: the list `ViewModel` takes an `Action<T> onEdit` callback into its constructor and the owning page's nav-stack (`NavigateTo`/`GoBack`) wires it to push/pop the editor; the editor takes `(entity, service, Action<T> onSaved, Action onBack)` and exposes a `[RelayCommand] Save()` / `[RelayCommand] GoBack()`. Copy `AgentsPageViewModel`/`AgentsListViewModel`/`AgentEditorViewModel` (or the newer `Skills*` equivalents) as the template for a new CRUD page rather than the heavier `BoardEditorViewModel`.
 
@@ -295,7 +295,7 @@ The desktop app can install Claude-Code-style skills (a `SKILL.md` with YAML fro
 - **Bundled skills** ship under `Corvida/Corvida/Skills/<id>/` (copied to the build output via `Corvida.csproj`'s `<None Include="Skills\**" .../>`) — currently `corvida-implement` and `corvida-plan`. Each skill folder has `SKILL.md` (frontmatter `name`/`description` + body) and `agents/openai.yaml` (`interface.display_name`/`interface.short_description`, consumed by non-Claude agent surfaces).
 - **Editable copy**: `SkillPaths.UserSkillsRoot` (`{AppData}/Corvida/skills/`) is a user-writable folder seeded once from the bundled skills via `SkillPaths.EnsureSeeded()` (called at app startup in `App.axaml.cs`). All editing/install operations read from and write to this folder, never the bundled/read-only one — a packaged (deb) install can't write next to its own binaries, and edits there would be lost on the next build anyway.
 - `ISkillService`/`SkillService` — file-based CRUD (`GetSkillsAsync`/`CreateSkillAsync`/`SaveSkillAsync`/`DeleteSkillAsync`) over `UserSkillsRoot`, desktop-only (not in `Corvida.Core` — skills aren't synced via the API/MCP like boards/tasks/agents are). `SkillMarkdownSerializer` / `SkillAgentYamlSerializer` hand-parse the two file formats, same style as `MarkdownSerializer` in Core.
-- `ISkillInstallerService`/`SkillInstallerService` — discovers skills dynamically from `UserSkillsRoot` (no hardcoded list) and copies both `SKILL.md` and `agents/openai.yaml` into a target root. Driven from the **Settings** page's "Install Skills" section, with per-tool target paths (`~/.claude/skills`, `~/.config/opencode/skills`, `~/.hermes/skills`).
+- `ISkillInstallerService`/`SkillInstallerService` — discovers skills dynamically from `UserSkillsRoot` (no hardcoded list) and copies both `SKILL.md` and `agents/openai.yaml` into a target root. Driven from the **Settings** page's Install tab, "Skills" card, with per-tool target paths (`~/.claude/skills`, `~/.config/opencode/skills`, `~/.hermes/skills`).
 
 ## Agent seeding & export (Corvida)
 
@@ -303,7 +303,7 @@ Separate from the Skills feature, but the same file-based-installer shape — th
 
 - **Bundled agent templates** ship under `Corvida/Corvida/Agents/*.md` (copied to the build output via `Corvida.csproj`'s `<None Include="Agents\**" .../>`) — currently `architect`, `code-reviewer`, `developer`, `orchestrator`, `security-reviewer`. Each file uses the same frontmatter+body shape as a Claude Code subagent (`name`/`description` + Markdown body).
 - `BuiltInAgentSeeder.EnsureSeededAsync` (static, called fire-and-forget from `App.axaml.cs` at startup) reads those templates via `SkillMarkdownSerializer.Parse` and creates one `Agent` per template on first run — with a deterministic `builtin-{slug}` ID (so re-runs don't duplicate them) and a per-slug accent color — via whatever `IAgentService` is currently active (local or HTTP).
-- `IAgentInstallerService`/`AgentInstallerService` does the reverse: it writes every *existing* `Agent` (built-in or user-created) out as one subagent definition per agent, so any Corvida Agent — not just the bundled templates — can be installed as a real subagent. Driven from the **Settings** page's "Install Agents" section.
+- `IAgentInstallerService`/`AgentInstallerService` does the reverse: it writes every *existing* `Agent` (built-in or user-created) out as one subagent definition per agent, so any Corvida Agent — not just the bundled templates — can be installed as a real subagent. Driven from the **Settings** page's Install tab, "Agents" card.
 
 ### Exporting agents as subagents
 
@@ -344,7 +344,42 @@ nothing. Two agents whose names slugify alike get distinct files.
 
 ## MCP self-registration (Corvida)
 
-`IMcpInstallerService`/`McpInstallerService` lets the desktop app register the bundled `Corvida.Mcp` server with an external tool's own config, from the **Settings** page's "Install MCP Server" section (needs a path to `Corvida.Mcp.csproj` plus a per-tool config path, e.g. `~/.claude.json`, `~/.config/opencode/opencode.json`, `~/.hermes/config.yaml`):
+`IMcpInstallerService`/`McpInstallerService` lets the desktop app register the bundled `Corvida.Mcp` server with an external tool's own config, from the **Settings** page's Install tab, "MCP Server" card (a per-tool config path, plus optionally a path to `Corvida.Mcp.csproj`, e.g. `~/.claude.json`, `~/.config/opencode/opencode.json`, `~/.hermes/config.yaml`):
 
 - Each target (`McpTarget.ClaudeCode`/`OpenCode`/`Hermes`) merges a single `"corvida"` entry into that tool's real config file — `mcpServers`/`mcp` JSON key for Claude Code/OpenCode, `mcp_servers` YAML key for Hermes — without touching any other key in the file, since these are the user's actively-used configs (Claude Code's `~/.claude.json` in particular carries project history unrelated to MCP).
+- The registered command is the bundled server (`McpInstallerService.BundledServerPath`: `/usr/bin/corvida-mcp` from the `corvida` package, else `mcp/Corvida.Mcp` beside the app) when the project-path field is empty, otherwise `dotnet run -c Release --project <path>` for a source checkout. A plain `dotnet run` of the desktop app has no bundled server, so it needs the path.
 - Uninstall removes just that one entry. Install/uninstall state is re-checked on every path-field edit in `SettingsViewModel` so the toggle buttons stay accurate.
+
+## Linux packages & versioning
+
+`packaging/build-packages.sh` builds one self-contained package, `corvida`, as `.deb` and `.rpm` into
+`artifacts/packages/` with nfpm (downloaded into `artifacts/tools/`, checksum-pinned; config in
+`packaging/nfpm.yaml`): the desktop app in `/usr/lib/corvida` and the MCP server in
+`/usr/lib/corvida/mcp` (`/usr/bin/corvida-mcp`). The MCP server keeps its own folder because it is a
+second self-contained app, and two in one directory overwrite each other's shared assemblies.
+`packaging/install.sh` installs the package with apt/dnf/zypper. The server (API, web UI, PostgreSQL) is
+not a package: it is distributed as container images.
+
+- A Release `dotnet publish` of `src/Corvida/Corvida.csproj` runs the script (`CreateLinuxPackages`
+  target). The script publishes each project with `-p:SkipLinuxPackaging=true` — drop that and the
+  desktop publish recurses into itself.
+- Files from the checkout (licences, desktop entry, icon) are copied into
+  `artifacts/stage/common/` before packaging so the `chmod -R go-w` covers them; reference them from
+  there, not from the repo, or a umask-002 checkout ships group-writable files.
+- Container images: `.github/workflows/container-images.yml` publishes `ghcr.io/<owner>/corvida-{api,web}`
+  (amd64 + arm64, tagged with the NBGV version on `v*` tags, `:edge` from `main`). Both Dockerfiles
+  build on `$BUILDPLATFORM`, since their output (portable IL / WebAssembly) is architecture-neutral.
+  `packaging/quadlet/` runs them under Podman as systemd units. The DB password is a Podman secret,
+  and the API reads it through `PGPASSWORD` (Npgsql honours it), so it never appears in a unit file.
+  Keep `PodmanArgs=--network-alias=` rather than `NetworkAlias=`: Quadlet only accepts the latter from
+  Podman 5.0, and Ubuntu 24.04 ships 4.9.
+- The desktop app installs those same units: `Corvida.csproj` embeds `packaging/quadlet/*` and
+  `PodmanServerInstaller` (Settings → Install → Corvida Server) writes them to
+  `~/.config/containers/systemd/`, substituting the ports and host name with `ReplaceLine` on the
+  exact default lines (`PublishPort=8183:80`, `PublishPort=8283:443`, `PublishPort=5083:5083`,
+  `Environment=CORVIDA_WEB_HOST=localhost`). Changing one of those lines in a unit breaks the
+  installer loudly, so update `Render` with it. It refuses to create a new DB secret beside an existing
+  `corvida-db` volume: the volume keeps the password it was initialised with.
+- Versions come from Nerdbank.GitVersioning (`src/Directory.Build.props`, `version.json` at the root):
+  `<yy>.<m>.<git height>`. Don't use `nbgv set-version` to bump — it drops `publicReleaseRefSpec`; the
+  build script rewrites the `version` line with `sed` when the month changes.
