@@ -114,6 +114,20 @@ year and month, and every commit after it raises the last number. When the month
 `build-packages.sh` updates `version.json` — commit that change. Builds from a branch other than
 `main` or a `v*` tag get a `~g<commit>` suffix, which sorts before the release of the same version.
 
+**Releases.** The *Build and publish* workflow (`.github/workflows/build_n_publish.yml`) runs the tests
+and builds both packages on every push to `main` and every pull request, and uploads them as a
+workflow artifact. A GitHub release `v<version>` with the `.deb` and `.rpm` attached is created by any of:
+
+- **Tag push**: `dotnet nbgv tag` (tags HEAD as `v<its version>`), then `git push origin v<version>`.
+- **github.com**: *Releases → Draft a new release*, new tag `v<version>` on `main`. The workflow only
+  attaches the packages to that existing release.
+- **Manual run**: *Actions → Build and publish → Run workflow* with `publish` ticked; it tags the built
+  commit `v<version>` and creates the release.
+
+Always take the version from `dotnet nbgv get-version` (or let `dotnet nbgv tag` pick it) rather than
+choosing a number, so the tag matches the version the packages carry. The same `v*` tag also
+publishes the container images with that version.
+
 **MCP server.** Leave *MCP Server Project Path* empty on the **Settings → Install** tab and the app
 registers the bundled `/usr/bin/corvida-mcp` with your AI tools; the path is only for running it from
 a source checkout with `dotnet run`.

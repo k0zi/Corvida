@@ -366,6 +366,11 @@ not a package: it is distributed as container images.
 - Files from the checkout (licences, desktop entry, icon) are copied into
   `artifacts/stage/common/` before packaging so the `chmod -R go-w` covers them; reference them from
   there, not from the repo, or a umask-002 checkout ships group-writable files.
+- CI packages: `.github/workflows/build_n_publish.yml` builds the `.deb`/`.rpm` on every push/PR (workflow
+  artifact) and attaches them to a GitHub release `v<version>` on a `v*` tag, a github.com release or a
+  manual run with `publish`. It tests only the two test projects and calls the script with
+  `--skip-tests`: a whole-solution build includes `Corvida.Web` (`WasmBuildNative`), which needs the
+  `wasm-tools` workload and isn't in the packages.
 - Container images: `.github/workflows/container-images.yml` publishes `ghcr.io/<owner>/corvida-{api,web}`
   (amd64 + arm64, tagged with the NBGV version on `v*` tags, `:edge` from `main`). Both Dockerfiles
   build on `$BUILDPLATFORM`, since their output (portable IL / WebAssembly) is architecture-neutral.
