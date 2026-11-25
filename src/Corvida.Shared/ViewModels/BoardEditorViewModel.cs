@@ -38,6 +38,11 @@ public partial class BoardEditorViewModel : ViewModelBase,
     [ObservableProperty]
     private bool _isReadOnly;
 
+    // Tasks waiting for a prerequisite that is not Done yet. Replaced as a whole rather than
+    // mutated, so the cards' bindings re-evaluate.
+    [ObservableProperty]
+    private IReadOnlySet<string> _blockedTaskIds = new HashSet<string>();
+
     public BoardEditorViewModel(
         Board board,
         IBoardService boardService,
@@ -95,6 +100,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
             else
                 cell.RemoveTaskById(message.Task.Id);
         }
+        UpdateBlockedTasks();
     }
 
     public void Receive(TaskDeletedMessage message)
@@ -104,6 +110,22 @@ public partial class BoardEditorViewModel : ViewModelBase,
         foreach (var row in Rows)
         foreach (var cell in row.Cells)
             cell.RemoveTaskById(message.TaskId);
+        UpdateBlockedTasks();
+    }
+
+    private void UpdateBlockedTasks()
+    {
+        var tasks = new Dictionary<string, KanbanTask>();
+        foreach (var row in Rows)
+        foreach (var cell in row.Cells)
+        foreach (var task in cell.Tasks)
+            tasks.TryAdd(task.Id, task);
+
+        var doneGroupId = TaskDependencies.FindDoneGroup(Board)?.Id;
+        BlockedTaskIds = tasks.Values
+            .Where(t => TaskDependencies.IsBlocked(t, tasks, doneGroupId))
+            .Select(t => t.Id)
+            .ToHashSet();
     }
 
     public void Receive(AgentChangedMessage message)
@@ -138,6 +160,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
         foreach (var group in Board.Groups)
             GroupCards.Add(CreateGroupCard(group));
 
+        // A reload (realtime update, member change) keeps the lanes the user collapsed.
+        var collapsed = Rows.Where(r => !r.IsExpanded).Select(r => r.AgentId ?? "").ToHashSet();
         Rows.Clear();
         Rows.Add(CreateRow(null, null));
         foreach (var agentId in Board.AgentIds)
@@ -145,6 +169,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
             var agent = await _agentService.GetAgentAsync(agentId);
             Rows.Add(CreateRow(agent, agentId));
         }
+        foreach (var row in Rows)
+            row.IsExpanded = !collapsed.Contains(row.AgentId ?? "");
 
         // There is no "list all tasks" API — enumerate the same way the app always has,
         // via each group's TaskIds — then place each task into its cell.
@@ -220,6 +246,8 @@ public partial class BoardEditorViewModel : ViewModelBase,
             }
         }
 
+        UpdateBlockedTasks();
+
         if (boardChanged && !IsReadOnly)
             await _boardService.SaveBoardAsync(Board);
     }
@@ -237,6 +265,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
         if (targetColIndex < 0)
         {
             currentCell?.RemoveTaskById(updated.Id);
+            UpdateBlockedTasks();
             return;
         }
 
@@ -247,11 +276,13 @@ public partial class BoardEditorViewModel : ViewModelBase,
         if (currentCell == targetCell)
         {
             currentCell.RefreshTask(updated);
+            UpdateBlockedTasks();
             return;
         }
 
         currentCell?.RemoveTaskById(updated.Id);
         targetCell.AddTask(updated);
+        UpdateBlockedTasks();
 
         RelocateInCellOrders(Board, updated.Id, updated.GroupId, updated.AssignedAgentId);
         _ = _boardService.SaveBoardAsync(Board);
@@ -297,6 +328,7 @@ public partial class BoardEditorViewModel : ViewModelBase,
 
         RemoveFromCellOrders(Board, task.Id);
         SetCellOrder(Board, target.Group.Id, target.AgentId, target.Tasks.Select(t => t.Id).ToList());
+        UpdateBlockedTasks();
 
         await SaveMoveAsync(task);
     }
@@ -375,6 +407,9 @@ public partial class BoardEditorViewModel : ViewModelBase,
         }
 
         source.RemoveTask(task);
+        // The storage layer dropped the task from the others' prerequisites; mirror that here.
+        TaskDependencies.RemoveReferences(Rows.SelectMany(r => r.Cells).SelectMany(c => c.Tasks), task.Id);
+        UpdateBlockedTasks();
         _notifications.Success($"Task '{task.Title}' was deleted.");
     }
 

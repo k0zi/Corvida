@@ -12,6 +12,10 @@ public class TaskEntity
     public DateTime? PlannedStart { get; set; }
     public DateTime? PlannedEnd { get; set; }
     public string? AssignedAgentId { get; set; }
+    public string DependsOnJson { get; set; } = "[]";
+    public double? EstimateOptimistic { get; set; }
+    public double? EstimateMostLikely { get; set; }
+    public double? EstimatePessimistic { get; set; }
 
     public BoardEntity Board { get; set; } = null!;
     public AgentEntity? AssignedAgent { get; set; }

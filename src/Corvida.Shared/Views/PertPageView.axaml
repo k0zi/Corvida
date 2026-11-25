@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
+             xmlns:charts="clr-namespace:KD.Avalonia.Rice.Controls.Charts;assembly=KD.Avalonia.Rice"
+             xmlns:md="clr-namespace:KD.Avalonia.Rice.Controls.Markdowns;assembly=KD.Avalonia.Rice"
+             xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:Corvida.ViewModels"
+             xmlns:models="using:Corvida.Models"
+             mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+             x:Class="Corvida.Views.PertPageView"
+             x:DataType="vm:PertPageViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.cell">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style Selector="TextBlock.head">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="TextAlignment" Value="Right"/>
+            <Setter Property="Foreground" Value="{DynamicResource RiceForegroundMutedBrush}"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel Margin="16">
+        <!-- Header: board picker and the headline numbers -->
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0 0 0 8">
+            <TextBlock Text="PERT" FontSize="24" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Boards}" SelectedItem="{Binding SelectedBoard}"
+                      MinWidth="240" Margin="16 0" VerticalAlignment="Center" PlaceholderText="Choose a board">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:Board">
+                        <TextBlock Text="{Binding Name}"/>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="2" Command="{Binding RefreshCommand}" Classes="Basic" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <materialIcons:MaterialIcon Kind="Refresh" Width="16" Height="16"/>
+                    <TextBlock Text="Refresh"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Summary}" Margin="0 0 0 12" TextWrapping="Wrap"
+                   Foreground="{DynamicResource RiceForegroundMutedBrush}"/>
+
+        <Border DockPanel.Dock="Top" IsVisible="{Binding ErrorText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                Background="#22E03131" BorderBrush="#E03131" BorderThickness="1" CornerRadius="6"
+                Padding="12 8" Margin="0 0 0 12">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <materialIcons:MaterialIcon Kind="AlertCircle" Width="18" Height="18" Foreground="#E03131"/>
+                <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- The selected task's estimate and prerequisites; edits are saved as they are made. -->
+        <rice:RiceCard DockPanel.Dock="Right" Width="320" Margin="16 0 0 0" Padding="16" VerticalAlignment="Top"
+                       IsVisible="{Binding HasTasks}">
+            <StackPanel Spacing="12">
+                <TextBlock Text="{Binding Planning.TaskTitle, FallbackValue=''}" FontSize="16" FontWeight="SemiBold"
+                           TextWrapping="Wrap" IsVisible="{Binding Planning, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                <TextBlock Text="Select a task in the network, the phases or the table to set its estimate and prerequisites."
+                           TextWrapping="Wrap" Foreground="{DynamicResource RiceForegroundMutedBrush}"
+                           IsVisible="{Binding Planning, Converter={x:Static ObjectConverters.IsNull}}"/>
+                <ContentControl Content="{Binding Planning}"/>
+            </StackPanel>
+        </rice:RiceCard>
+
+        <Panel>
+            <rice:RiceEmptyState Title="No boards" Description="Create a board on the Boards page to plan its tasks here."
+                                 IsVisible="{Binding ShowNoBoards}">
+                <rice:RiceEmptyState.Icon>
+                    <materialIcons:MaterialIcon Kind="ViewDashboardOutline"/>
+                </rice:RiceEmptyState.Icon>
+            </rice:RiceEmptyState>
+            <rice:RiceEmptyState Title="No tasks" Description="This board has no tasks yet."
+                                 IsVisible="{Binding ShowNoTasks}">
+                <rice:RiceEmptyState.Icon>
+                    <materialIcons:MaterialIcon Kind="Sitemap"/>
+                </rice:RiceEmptyState.Icon>
+            </rice:RiceEmptyState>
+
+            <TabControl IsVisible="{Binding HasSchedule}">
+                <TabItem Header="Network">
+                    <md:MermaidView Source="{Binding MermaidSource}"
+                                    SelectedElement="{Binding SelectedDiagramElement, Mode=TwoWay}"
+                                    ShowZoomControls="True"/>
+                </TabItem>
+
+                <TabItem Header="Phases">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Phases}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="12"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PertPhaseViewModel">
+                                    <StackPanel Width="230" Spacing="8">
+                                        <TextBlock Text="{Binding Header}" FontWeight="SemiBold"/>
+                                        <ItemsControl ItemsSource="{Binding Tasks}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:PertRowViewModel">
+                                                    <Button Classes="Basic" Margin="0 0 0 8" Padding="0"
+                                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                                            Command="{Binding $parent[UserControl].((vm:PertPageViewModel)DataContext).SelectTaskCommand}"
+                                                            CommandParameter="{Binding}">
+                                                        <rice:RiceCard Padding="10">
+                                                            <StackPanel Spacing="4">
+                                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                                    <materialIcons:MaterialIcon Kind="Star" Width="14" Height="14"
+                                                                                                 Foreground="#F59F00" IsVisible="{Binding IsCritical}"
+                                                                                                 ToolTip.Tip="On the critical path"/>
+                                                                    <materialIcons:MaterialIcon Kind="CheckCircle" Width="14" Height="14"
+                                                                                                 Foreground="#2F9E44" IsVisible="{Binding IsDone}"
+                                                                                                 ToolTip.Tip="Done"/>
+                                                                    <TextBlock Text="{Binding Title}" FontWeight="Medium" TextWrapping="Wrap"/>
+                                                                </StackPanel>
+                                                                <TextBlock FontSize="11" Foreground="{DynamicResource RiceForegroundMutedBrush}">
+                                                                    <Run Text="{Binding Expected}"/><Run Text=" d · day "/><Run Text="{Binding EarliestStart}"/><Run Text="–"/><Run Text="{Binding EarliestFinish}"/><Run Text=" · slack "/><Run Text="{Binding Slack}"/>
+                                                                </TextBlock>
+                                                                <TextBlock Text="{Binding Prerequisites}" FontSize="11" TextWrapping="Wrap"
+                                                                           Foreground="{DynamicResource RiceForegroundMutedBrush}"/>
+                                                            </StackPanel>
+                                                        </rice:RiceCard>
+                                                    </Button>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Table">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,50,110,50,50,50,50,50,50" Margin="12 4 12 4">
+                            <TextBlock Grid.Column="0" Classes="head" Text="Task" TextAlignment="Left"/>
+                            <TextBlock Grid.Column="1" Classes="head" Text="Phase"/>
+                            <TextBlock Grid.Column="2" Classes="head" Text="O / M / P"/>
+                            <TextBlock Grid.Column="3" Classes="head" Text="te" ToolTip.Tip="Expected duration: (O + 4M + P) / 6"/>
+                            <TextBlock Grid.Column="4" Classes="head" Text="ES" ToolTip.Tip="Earliest start"/>
+                            <TextBlock Grid.Column="5" Classes="head" Text="EF" ToolTip.Tip="Earliest finish"/>
+                            <TextBlock Grid.Column="6" Classes="head" Text="LS" ToolTip.Tip="Latest start"/>
+                            <TextBlock Grid.Column="7" Classes="head" Text="LF" ToolTip.Tip="Latest finish"/>
+                            <TextBlock Grid.Column="8" Classes="head" Text="Slack"/>
+                        </Grid>
+                        <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PertRowViewModel">
+                                    <Grid ColumnDefinitions="*,50,110,50,50,50,50,50,50">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <materialIcons:MaterialIcon Kind="Star" Width="14" Height="14"
+                                                                         Foreground="#F59F00" IsVisible="{Binding IsCritical}"
+                                                                         ToolTip.Tip="On the critical path"/>
+                                            <materialIcons:MaterialIcon Kind="CheckCircle" Width="14" Height="14"
+                                                                         Foreground="#2F9E44" IsVisible="{Binding IsDone}"
+                                                                         ToolTip.Tip="Done"/>
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1" Classes="cell" Text="{Binding PhaseNumber}"/>
+                                        <TextBlock Grid.Column="2" Classes="cell" Text="{Binding Estimates}"/>
+                                        <TextBlock Grid.Column="3" Classes="cell" Text="{Binding Expected}"/>
+                                        <TextBlock Grid.Column="4" Classes="cell" Text="{Binding EarliestStart}"/>
+                                        <TextBlock Grid.Column="5" Classes="cell" Text="{Binding EarliestFinish}"/>
+                                        <TextBlock Grid.Column="6" Classes="cell" Text="{Binding LatestStart}"/>
+                                        <TextBlock Grid.Column="7" Classes="cell" Text="{Binding LatestFinish}"/>
+                                        <TextBlock Grid.Column="8" Classes="cell" Text="{Binding Slack}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </TabItem>
+
+                <TabItem Header="Timeline">
+                    <charts:RiceGanttChart Tasks="{Binding GanttTasks}" ShowToday="True"/>
+                </TabItem>
+            </TabControl>
+        </Panel>
+    </DockPanel>
+</UserControl>

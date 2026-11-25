@@ -22,15 +22,7 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         var board = all.FirstOrDefault(b => b.Id == boardId);
         if (board is null) return """{"error":"Board not found"}""";
 
-        var result = new List<KanbanTask>();
-        foreach (var group in board.Groups)
-            foreach (var taskId in group.TaskIds)
-            {
-                var t = await tasks.GetTaskAsync(boardId, taskId);
-                if (t is not null) result.Add(t);
-            }
-
-        return JsonSerializer.Serialize(result, JsonOpts);
+        return JsonSerializer.Serialize(await LoadTasksAsync(board), JsonOpts);
     }
 
     [McpServerTool, Description(
@@ -56,6 +48,9 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         [Description("Priority: Low, Medium, or High")] string priority,
         [Description("Optional planned start date in ISO-8601 format, e.g. 2026-06-15")] string? plannedStart,
         [Description("Optional planned end date in ISO-8601 format, e.g. 2026-06-30")] string? plannedEnd,
+        [Description("Optional PERT optimistic estimate, in days")] double? estimateOptimistic,
+        [Description("Optional PERT most likely estimate, in days")] double? estimateMostLikely,
+        [Description("Optional PERT pessimistic estimate, in days")] double? estimatePessimistic,
         CancellationToken cancellationToken)
     {
         var allBoards = await boards.GetBoardsAsync();
@@ -74,6 +69,9 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
             Created = DateTime.UtcNow,
             PlannedStart = plannedStart is not null ? ParseUtc(plannedStart) : null,
             PlannedEnd   = plannedEnd   is not null ? ParseUtc(plannedEnd)   : null,
+            EstimateOptimistic  = estimateOptimistic,
+            EstimateMostLikely  = estimateMostLikely,
+            EstimatePessimistic = estimatePessimistic,
         };
 
         await tasks.SaveTaskAsync(task);
@@ -94,6 +92,9 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         [Description("New priority (Low/Medium/High), or null to keep existing")] string? priority,
         [Description("New planned start date ISO-8601, or null to keep existing")] string? plannedStart,
         [Description("New planned end date ISO-8601, or null to keep existing")] string? plannedEnd,
+        [Description("New PERT optimistic estimate in days, or null to keep existing")] double? estimateOptimistic,
+        [Description("New PERT most likely estimate in days, or null to keep existing")] double? estimateMostLikely,
+        [Description("New PERT pessimistic estimate in days, or null to keep existing")] double? estimatePessimistic,
         CancellationToken cancellationToken)
     {
         var task = await tasks.GetTaskAsync(boardId, taskId);
@@ -104,6 +105,9 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         if (priority     is not null) task.Priority     = priority;
         if (plannedStart is not null) task.PlannedStart = ParseUtc(plannedStart);
         if (plannedEnd   is not null) task.PlannedEnd   = ParseUtc(plannedEnd);
+        if (estimateOptimistic  is not null) task.EstimateOptimistic  = estimateOptimistic;
+        if (estimateMostLikely  is not null) task.EstimateMostLikely  = estimateMostLikely;
+        if (estimatePessimistic is not null) task.EstimatePessimistic = estimatePessimistic;
 
         await tasks.SaveTaskAsync(task);
         return JsonSerializer.Serialize(task, JsonOpts);
@@ -195,6 +199,108 @@ public sealed class TaskTools(IBoardService boards, ITaskService tasks)
         await boards.SaveBoardAsync(board);
 
         return JsonSerializer.Serialize(new { taskId, assignedAgentId = agentId }, JsonOpts);
+    }
+
+    [McpServerTool, Description(
+        "Make a task depend on another task of the same board: it should only start once the other one is done. " +
+        "Refused when it would create a dependency cycle.")]
+    public async Task<string> add_dependency(
+        [Description("The board ID")] string boardId,
+        [Description("The task that has to wait")] string taskId,
+        [Description("The task that has to be finished first")] string dependsOnTaskId,
+        CancellationToken cancellationToken)
+    {
+        var allBoards = await boards.GetBoardsAsync();
+        var board = allBoards.FirstOrDefault(b => b.Id == boardId);
+        if (board is null) return """{"error":"Board not found"}""";
+
+        var byId = (await LoadTasksAsync(board)).ToDictionary(t => t.Id);
+        if (!byId.TryGetValue(taskId, out var task)) return """{"error":"Task not found"}""";
+        if (!byId.ContainsKey(dependsOnTaskId)) return """{"error":"Prerequisite task not found on this board"}""";
+        if (task.DependsOn.Contains(dependsOnTaskId))
+            return JsonSerializer.Serialize(new { taskId, dependsOn = task.DependsOn }, JsonOpts);
+        if (TaskDependencies.WouldCreateCycle(byId, taskId, dependsOnTaskId))
+            return """{"error":"Dependency cycle: the task would end up waiting for itself"}""";
+
+        task.DependsOn.Add(dependsOnTaskId);
+        await tasks.SaveTaskAsync(task);
+        return JsonSerializer.Serialize(new { taskId, dependsOn = task.DependsOn }, JsonOpts);
+    }
+
+    [McpServerTool, Description("Remove a dependency added with add_dependency.")]
+    public async Task<string> remove_dependency(
+        [Description("The board ID")] string boardId,
+        [Description("The task that waits")] string taskId,
+        [Description("The prerequisite task to remove")] string dependsOnTaskId,
+        CancellationToken cancellationToken)
+    {
+        var task = await tasks.GetTaskAsync(boardId, taskId);
+        if (task is null) return """{"error":"Task not found"}""";
+
+        if (task.DependsOn.Remove(dependsOnTaskId))
+            await tasks.SaveTaskAsync(task);
+        return JsonSerializer.Serialize(new { taskId, dependsOn = task.DependsOn }, JsonOpts);
+    }
+
+    [McpServerTool, Description(
+        "PERT schedule of a board computed from task dependencies and three-point estimates (days; a task without " +
+        "an estimate counts as 1 day). Returns the phases (tasks of one phase do not depend on each other and can be " +
+        "done in parallel), per task the expected duration, earliest/latest start and finish, slack and whether it is " +
+        "critical, plus the critical path and the expected project duration with its standard deviation.")]
+    public async Task<string> get_pert_schedule(
+        [Description("The board ID")] string boardId,
+        CancellationToken cancellationToken)
+    {
+        var allBoards = await boards.GetBoardsAsync();
+        var board = allBoards.FirstOrDefault(b => b.Id == boardId);
+        if (board is null) return """{"error":"Board not found"}""";
+
+        var schedule = PertCalculator.Calculate(await LoadTasksAsync(board));
+        if (schedule.HasCycle)
+            return JsonSerializer.Serialize(new
+            {
+                error = "Dependency cycle",
+                cycle = schedule.Cycle.Select(t => new { t.Id, t.Title }),
+            }, JsonOpts);
+
+        var doneGroupId = TaskDependencies.FindDoneGroup(board)?.Id;
+        return JsonSerializer.Serialize(new
+        {
+            projectDuration = Math.Round(schedule.ProjectDuration, 2),
+            projectStdDev = Math.Round(schedule.ProjectStdDev, 2),
+            criticalPath = schedule.CriticalPath.Select(n => n.Task.Id),
+            phases = schedule.Phases.Select((phase, i) => new
+            {
+                phase = i + 1,
+                tasks = phase.Select(n => new
+                {
+                    n.Task.Id,
+                    n.Task.Title,
+                    done = TaskDependencies.IsDone(n.Task, doneGroupId),
+                    dependsOn = n.Predecessors.Select(p => p.Task.Id),
+                    expected = Math.Round(n.Expected, 2),
+                    n.HasEstimate,
+                    earliestStart = Math.Round(n.EarliestStart, 2),
+                    earliestFinish = Math.Round(n.EarliestFinish, 2),
+                    latestStart = Math.Round(n.LatestStart, 2),
+                    latestFinish = Math.Round(n.LatestFinish, 2),
+                    slack = Math.Round(n.Slack, 2),
+                    n.IsCritical,
+                }),
+            }),
+        }, JsonOpts);
+    }
+
+    private async Task<List<KanbanTask>> LoadTasksAsync(Board board)
+    {
+        var result = new List<KanbanTask>();
+        foreach (var group in board.Groups)
+            foreach (var taskId in group.TaskIds)
+            {
+                var t = await tasks.GetTaskAsync(board.Id, taskId);
+                if (t is not null) result.Add(t);
+            }
+        return result;
     }
 
     // The single source of truth for "which cell (group, agent) a task visually sits in" is

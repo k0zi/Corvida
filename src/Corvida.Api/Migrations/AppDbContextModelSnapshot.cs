@@ -17,7 +17,7 @@ namespace Corvida.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -107,11 +107,26 @@ namespace Corvida.Api.Migrations
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamptz");
 
+                    b.Property<string>("DependsOnJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("[]");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
                         .HasDefaultValue("");
+
+                    b.Property<double?>("EstimateMostLikely")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("EstimateOptimistic")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("EstimatePessimistic")
+                        .HasColumnType("double precision");
 
                     b.Property<string>("GroupId")
                         .IsRequired()

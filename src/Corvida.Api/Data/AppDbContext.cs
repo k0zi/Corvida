@@ -67,6 +67,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             t.Property(e => e.PlannedStart).HasColumnType("timestamptz").HasConversion(UtcNullableDateTimeConverter);
             t.Property(e => e.PlannedEnd).HasColumnType("timestamptz").HasConversion(UtcNullableDateTimeConverter);
             t.Property(e => e.AssignedAgentId).HasColumnType("text");
+            t.Property(e => e.DependsOnJson)
+                .HasColumnType("jsonb")
+                .IsRequired()
+                .HasDefaultValue("[]");
+            t.Property(e => e.EstimateOptimistic).HasColumnType("double precision");
+            t.Property(e => e.EstimateMostLikely).HasColumnType("double precision");
+            t.Property(e => e.EstimatePessimistic).HasColumnType("double precision");
 
             t.HasOne(e => e.Board)
                 .WithMany(b => b.Tasks)

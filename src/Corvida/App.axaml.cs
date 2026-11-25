@@ -76,6 +76,7 @@ public partial class App : Application
 
             // Pages
             services.AddTransient<PageBase, BoardsPageViewModel>();
+            services.AddTransient<PageBase, PertPageViewModel>();
             services.AddTransient<PageBase, AgentsPageViewModel>();
             services.AddTransient<PageBase, SkillsPageViewModel>();
             services.AddTransient<PageBase, ArchivedBoardsViewModel>();
@@ -93,6 +94,7 @@ public partial class App : Application
 
             var mainVm = Services.GetRequiredService<MainWindowViewModel>();
             var boardsPage = mainVm.AllPages.OfType<BoardsPageViewModel>().First();
+            var pertPage = mainVm.AllPages.OfType<PertPageViewModel>().First();
             var agentsPage = mainVm.AllPages.OfType<AgentsPageViewModel>().First();
             var archivedPage = mainVm.AllPages.OfType<ArchivedBoardsViewModel>().First();
             var usersPage = mainVm.AllPages.OfType<UsersPageViewModel>().First();
@@ -102,6 +104,7 @@ public partial class App : Application
                 mainVm.ActivePage = boardsPage;
                 await settingsPage.RefreshAuthStateAsync();
                 await boardsPage.RefreshAsync();
+                await pertPage.RefreshAsync();
             });
 
             // Turning the switch on or off from Settings changes what the whole shell should show,
@@ -152,6 +155,7 @@ public partial class App : Application
                 if (mainVm.CurrentUser?.IsAdmin == true) await usersPage.RefreshAsync();
                 await settingsPage.RefreshAuthStateAsync();
                 await boardsPage.RefreshAsync();
+                await pertPage.RefreshAsync();
             }
 
             mainVm.SignedIn += StartAuthenticatedWorkAsync;

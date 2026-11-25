@@ -1,7 +1,9 @@
+using System.Text.Json;
 using Corvida.Api.Auth;
 using Corvida.Api.Data;
 using Corvida.Api.Hubs;
 using Corvida.Models;
+using Corvida.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +11,8 @@ namespace Corvida.Api.Endpoints;
 
 public static class TaskEndpoints
 {
+    private static readonly JsonSerializerOptions JsonOpts = new();
+
     public static void MapTaskEndpoints(this WebApplication app)
     {
         var g = app.MapGroup("/api/boards/{boardId}/tasks").RequireAuthorization(Policies.User);
@@ -29,6 +33,23 @@ public static class TaskEndpoints
     {
         if (await IsBoardArchived(boardId, db)) return Results.Conflict("This board is archived and cannot be modified.");
 
+        // Every client checks this too, but the MCP server and any other HTTP caller only meet it here.
+        var dependsOn = task.DependsOn ?? [];
+        if (dependsOn.Count > 0)
+        {
+            var others = (await db.Tasks.AsNoTracking()
+                    .Where(t => t.BoardId == boardId && t.Id != taskId)
+                    .ToListAsync())
+                .Select(ToModel)
+                .ToDictionary(t => t.Id);
+
+            var candidate = new KanbanTask { Id = taskId, DependsOn = dependsOn };
+            candidate.DependsOn = TaskDependencies.Normalize(candidate, others.Keys);
+            if (TaskDependencies.HasCycleThrough(others, candidate))
+                return Results.BadRequest("Dependency cycle: the task would end up waiting for itself.");
+            dependsOn = candidate.DependsOn;
+        }
+
         var entity = await db.Tasks.FirstOrDefaultAsync(t => t.BoardId == boardId && t.Id == taskId);
 
         if (entity is null)
@@ -45,6 +66,10 @@ public static class TaskEndpoints
         entity.PlannedStart = task.PlannedStart;
         entity.PlannedEnd = task.PlannedEnd;
         entity.AssignedAgentId = task.AssignedAgentId;
+        entity.DependsOnJson = JsonSerializer.Serialize(dependsOn, JsonOpts);
+        entity.EstimateOptimistic = task.EstimateOptimistic;
+        entity.EstimateMostLikely = task.EstimateMostLikely;
+        entity.EstimatePessimistic = task.EstimatePessimistic;
 
         await db.SaveChangesAsync();
 
@@ -61,9 +86,23 @@ public static class TaskEndpoints
         if (entity is null) return Results.NotFound();
 
         db.Tasks.Remove(entity);
+
+        // A deleted task must not linger as a prerequisite of the others.
+        var dependents = new List<KanbanTask>();
+        var others = await db.Tasks.Where(t => t.BoardId == boardId && t.Id != taskId).ToListAsync();
+        foreach (var other in others)
+        {
+            var model = ToModel(other);
+            if (TaskDependencies.RemoveReferences([model], taskId).Count == 0) continue;
+            other.DependsOnJson = JsonSerializer.Serialize(model.DependsOn, JsonOpts);
+            dependents.Add(model);
+        }
+
         await db.SaveChangesAsync();
 
         await hub.Clients.All.TaskDeleted(boardId, taskId);
+        foreach (var dependent in dependents)
+            await hub.Clients.All.TaskChanged(boardId, dependent);
         return Results.NoContent();
     }
 
@@ -85,5 +124,9 @@ public static class TaskEndpoints
         PlannedStart = e.PlannedStart,
         PlannedEnd = e.PlannedEnd,
         AssignedAgentId = e.AssignedAgentId,
+        DependsOn = JsonSerializer.Deserialize<List<string>>(e.DependsOnJson, JsonOpts) ?? [],
+        EstimateOptimistic = e.EstimateOptimistic,
+        EstimateMostLikely = e.EstimateMostLikely,
+        EstimatePessimistic = e.EstimatePessimistic,
     };
 }

@@ -57,6 +57,13 @@ public static class MarkdownSerializer
                                 task.PlannedEnd = pe;
                             break;
                         case "assignedAgentId": task.AssignedAgentId = value; break;
+                        case "dependsOn":
+                            task.DependsOn = new List<string>(value.Split(',',
+                                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                            break;
+                        case "estimateOptimistic": task.EstimateOptimistic = ParseDouble(value); break;
+                        case "estimateMostLikely": task.EstimateMostLikely = ParseDouble(value); break;
+                        case "estimatePessimistic": task.EstimatePessimistic = ParseDouble(value); break;
                     }
                 }
             }
@@ -86,9 +93,23 @@ public static class MarkdownSerializer
             sb.AppendLine($"plannedEnd: {task.PlannedEnd.Value:O}");
         if (task.AssignedAgentId is not null)
             sb.AppendLine($"assignedAgentId: {task.AssignedAgentId}");
+        if (task.DependsOn.Count > 0)
+            sb.AppendLine($"dependsOn: {string.Join(", ", task.DependsOn)}");
+        AppendDouble(sb, "estimateOptimistic", task.EstimateOptimistic);
+        AppendDouble(sb, "estimateMostLikely", task.EstimateMostLikely);
+        AppendDouble(sb, "estimatePessimistic", task.EstimatePessimistic);
         sb.AppendLine("---");
         sb.AppendLine();
         sb.Append(task.Description);
         return sb.ToString();
+    }
+
+    private static double? ParseDouble(string value) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var d) ? d : null;
+
+    private static void AppendDouble(StringBuilder sb, string key, double? value)
+    {
+        if (value.HasValue)
+            sb.AppendLine($"{key}: {value.Value.ToString("R", CultureInfo.InvariantCulture)}");
     }
 }

@@ -164,6 +164,8 @@ docker compose up --build   # or: podman compose up --build
 
 This builds the API image and starts it alongside PostgreSQL, exposing the API on `http://localhost:5083`.
 
+To build your own tools on the API (endpoints, authentication, data model, realtime events, examples), see the [API reference](docs/api.md).
+
 > **Podman users going the manual `docker compose` route:** make sure the Podman API socket is running first, since Compose talks to it over the Docker-compatible API:
 > ```bash
 > systemctl --user enable --now podman.socket

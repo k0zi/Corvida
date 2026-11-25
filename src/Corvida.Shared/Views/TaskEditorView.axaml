@@ -89,6 +89,8 @@
                         </StackPanel>
                     </Grid>
 
+                    <ContentControl Content="{Binding Planning}"/>
+
                     <StackPanel Spacing="6">
                         <TextBlock Text="Description" FontWeight="Medium"/>
                         <controls:MarkdownEditor Text="{Binding Description}" MinHeight="250"/>

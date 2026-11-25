@@ -16,6 +16,7 @@ public partial class TaskEditorViewModel : ViewModelBase
 
     private readonly ITaskService _taskService;
     private readonly IAgentService _agentService;
+    private readonly IDialogService _dialogService;
     private readonly Action<KanbanTask> _onSaved;
     private readonly Action _onBack;
 
@@ -29,6 +30,9 @@ public partial class TaskEditorViewModel : ViewModelBase
     [ObservableProperty] private DateTimeOffset? _plannedEnd;
     [ObservableProperty] private Agent? _selectedAssignedAgent;
 
+    /// <summary>Estimate and prerequisites; null until the board's other tasks have loaded.</summary>
+    [ObservableProperty] private TaskPlanningViewModel? _planning;
+
     public IReadOnlyList<string> Priorities { get; } = new[] { "Low", "Medium", "High" };
 
     public ObservableCollection<Agent> BoardMembers { get; } = new() { UnassignedSentinel };
@@ -36,12 +40,13 @@ public partial class TaskEditorViewModel : ViewModelBase
     public string BoardName => _board.Name;
 
     public TaskEditorViewModel(KanbanTask task, Board board, ITaskService taskService, IAgentService agentService,
-        Action<KanbanTask> onSaved, Action onBack)
+        IDialogService dialogService, Action<KanbanTask> onSaved, Action onBack)
     {
         _task = task;
         _board = board;
         _taskService = taskService;
         _agentService = agentService;
+        _dialogService = dialogService;
         _onSaved = onSaved;
         _onBack = onBack;
 
@@ -53,6 +58,21 @@ public partial class TaskEditorViewModel : ViewModelBase
         SelectedAssignedAgent = UnassignedSentinel;
 
         _ = LoadBoardMembersAsync();
+        _ = LoadBoardTasksAsync();
+    }
+
+    // The prerequisite picker offers the board's other tasks.
+    private async Task LoadBoardTasksAsync()
+    {
+        var tasks = new Dictionary<string, KanbanTask>();
+        foreach (var group in _board.Groups)
+        foreach (var taskId in group.TaskIds)
+        {
+            var task = taskId == _task.Id ? _task : await _taskService.GetTaskAsync(_board.Id, taskId);
+            if (task is not null) tasks[taskId] = task;
+        }
+
+        Planning = new TaskPlanningViewModel(_task, tasks, _dialogService, _board.IsArchived);
     }
 
     private async Task LoadBoardMembersAsync()
@@ -75,6 +95,7 @@ public partial class TaskEditorViewModel : ViewModelBase
         _task.PlannedStart = PlannedStart?.UtcDateTime;
         _task.PlannedEnd = PlannedEnd?.UtcDateTime;
         _task.AssignedAgentId = string.IsNullOrEmpty(SelectedAssignedAgent?.Id) ? null : SelectedAssignedAgent.Id;
+        Planning?.ApplyTo(_task);
         await _taskService.SaveTaskAsync(_task);
         _onSaved(_task);
     }

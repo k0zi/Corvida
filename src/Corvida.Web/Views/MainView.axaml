@@ -3,6 +3,7 @@
              xmlns:rice="clr-namespace:KD.Avalonia.Rice.Controls;assembly=KD.Avalonia.Rice"
              xmlns:vm="clr-namespace:Corvida.ViewModels;assembly=Corvida.Shared"
              xmlns:dialogs="clr-namespace:Corvida.Views.Dialogs;assembly=Corvida.Shared"
+             xmlns:md="clr-namespace:KD.Avalonia.Rice.Controls.Markdowns;assembly=KD.Avalonia.Rice"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="1080" d:DesignHeight="620"
@@ -10,7 +11,23 @@
              x:DataType="vm:MainWindowViewModel"
              Background="{DynamicResource RiceBackgroundBrush}">
 
+    <!-- The gradient background a RiceWindow draws by default. Rice makes its large surfaces translucent
+         only inside a RiceWindow, so the same is done here for the ones the pages use. -->
+    <UserControl.Styles>
+        <Style Selector="rice|RiceSideMenu">
+            <Setter Property="Background" Value="{DynamicResource RiceGradientChromeBrush}" />
+        </Style>
+        <Style Selector="rice|RiceCard, rice|RiceTabView, rice|RiceTabViewItem:selected">
+            <Setter Property="Background" Value="{DynamicResource RiceGradientSurfaceBrush}" />
+        </Style>
+        <Style Selector="md|MermaidView">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
     <Panel>
+        <rice:RiceGradientBackground />
+
         <!-- No RiceWindow in the browser, so the theme toggle that lives in its title bar moves to
              the side menu's footer. -->
         <DockPanel IsVisible="{Binding IsSignedIn}">

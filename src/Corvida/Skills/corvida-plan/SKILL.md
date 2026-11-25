@@ -13,7 +13,8 @@ Turns a task/feature request into tracked Corvida Kanban tasks, separating anyth
 2. Ensure the board has these groups, creating any missing ones: `To Do`, `In Progress`, `Done`, `Human`.
 3. Break the request into discrete, actionable tasks.
 4. For each task, decide: normal work → `To Do`; needs human action → `Human` (see criteria below).
-5. Create all tasks via `create_task`, then report the plan back to the user.
+5. Create all tasks via `create_task`, then record their order with `add_dependency`.
+6. Check the result with `get_pert_schedule` and report the plan back to the user.
 
 ## Workflow
 
@@ -27,8 +28,10 @@ Turns a task/feature request into tracked Corvida Kanban tasks, separating anyth
   - an action visible to or affecting shared/external systems (opening a PR, sending a message, publishing, calling a paid/external API)
 
   Write these task descriptions as a direct, answerable ask: what decision or action is needed, and why it's blocking.
-- **Create tasks**: `create_task` into the resolved group. Keep titles and descriptions in English regardless of the conversation language.
-- **Report back**: list what was planned (`To Do` count) and what needs the user's attention (`Human` tasks, each with a one-line reason).
+- **Create tasks**: `create_task` into the resolved group. Keep titles and descriptions in English regardless of the conversation language. Pass a three-point estimate in days (`estimateOptimistic` / `estimateMostLikely` / `estimatePessimistic`) when you can judge the size of the work.
+- **Record the order**: for every task that can only start once another one is finished, call `add_dependency(boardId, taskId, dependsOnTaskId)`. Add only real prerequisites, not a chain through everything — tasks without a dependency between them are what can be done in parallel. A `Human` task can be a prerequisite too (e.g. an answer the implementation needs).
+- **Check the schedule**: `get_pert_schedule` returns the phases (tasks of one phase can run in parallel), the critical path and the expected duration. If it reports a dependency cycle, remove the dependency that is wrong.
+- **Report back**: list what was planned (`To Do` count), the phases and the critical path, and what needs the user's attention (`Human` tasks, each with a one-line reason).
 
 ## Notes
 

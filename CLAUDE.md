@@ -47,7 +47,7 @@ Four entities, in `Corvida.Core/Models`:
 
 - **Board** — has `Id`, `Name`, a list of `KanbanGroup`, `IsArchived`, `AgentIds` (board membership), and `CellOrders` (persisted per-cell task ordering for the swimlane grid)
 - **KanbanGroup** — a column (e.g. "To-Do"); holds a list of task IDs (`TaskIds`)
-- **KanbanTask** — carries `Title`, `Description` (markdown), `Priority`, `Created`, optional `PlannedStart`/`PlannedEnd`, `AssignedAgentId`, plus `BoardId` and `GroupId` back-references
+- **KanbanTask** — carries `Title`, `Description` (markdown), `Priority`, `Created`, optional `PlannedStart`/`PlannedEnd`, `AssignedAgentId`, plus `BoardId` and `GroupId` back-references. For PERT planning it also has `DependsOn` (IDs of prerequisite tasks on the same board) and an optional three-point estimate in days (`EstimateOptimistic`/`EstimateMostLikely`/`EstimatePessimistic`) — see [PERT](#pert-planning)
 - **Agent** — a board member (human or AI); carries `Id`, `Name`, `Personality` (markdown), `Color`, optional `AvatarDataUri`. Boards reference agents by `AgentIds`; tasks reference an assignee by `AssignedAgentId`. Agents are managed from the desktop app's **Agents** page and are independent of any single board (assign the same agent across multiple boards).
 
 `AppSettings` (also in Core) holds `DataPath`, `StorageMode`, and optional `ServerUrl`.
@@ -112,9 +112,10 @@ The desktop app additionally registers `IRealtimeClient` (`SignalRRealtimeClient
 ## Desktop App (Corvida)
 
 - **Avalonia 12** with **KD.Avalonia.Rice** (`RiceStyles`, which includes Fluent; `RiceWindow`, `RiceSideMenu`, `RiceCard`, `RiceKanbanBoard`, `RiceDialog`, `RiceToast`). The `Basic`/`Danger` button classes left over from SukiUI are defined in `Corvida.Shared/Styles/CorvidaStyles.axaml`; the filled primary button is Rice's `accent` class
+- **Gradient background**: `RiceWindow` draws Rice's accent gradient by default (since Rice 26.11) and makes the side menu, cards and tab views translucent over it. The browser has no `RiceWindow`, so `Corvida.Web/Views/MainView.axaml` places a `RiceGradientBackground` itself and repeats those translucency styles; `LoginView` draws one too, because its opaque gate background covers the window's
 - **Dialogs** (`IDialogService`/`DialogService`) have two backends. Under `IClassicDesktopStyleApplicationLifetime` they are `RiceDialog` windows; in the browser (`ISingleViewApplicationLifetime`, where `RiceDialog` cannot open its window) they are overlays drawn by `DialogManager` + `Views/Dialogs/DialogHost`. The bodies in `Views/Dialogs/` serve both: each implements `IDialogBody`, so in a window its own OK/Cancel row is hidden and the window's buttons call `Confirm()`. `RiceDialogWindow` has no title bar and never displays `DialogOptions.Title`, so `RiceDialogFrame` draws the heading inside the content. Confirmations are for yes/no questions only — use `ShowMessageAsync` for something the user must acknowledge
 - **Notifications** (`INotificationService` → `ToastNotificationService` → `RiceToast`) are for outcomes and errors: "exported", "could not delete". They work in both hosts with no wiring — `RiceWindow` has a built-in toast host and the browser gets one in the overlay layer
-- **Board editor** is a `RiceKanbanBoard` in swimlane mode: lanes are `SwimlaneRowViewModel`s (`LaneTemplate`), columns `SwimlaneCellViewModel`s (`ItemTemplate`), cards `KanbanTask`s, with `GroupCards` as the `ColumnHeaders` row. `CardMoving` is handled (`e.Handled = true`) and forwarded to `BoardEditorViewModel.MoveTaskAsync`, which must change the cells *before its first await* — the board selects and focuses the moved card right after the handler returns. `e.TargetIndex` is the index after the move
+- **Board editor** is a `RiceKanbanBoard` in swimlane mode: lanes are `SwimlaneRowViewModel`s (`LaneTemplate`), columns `SwimlaneCellViewModel`s (`ItemTemplate`), cards `KanbanTask`s, with `GroupCards` as the `ColumnHeaders` row. `CardMoving` is handled (`e.Handled = true`) and forwarded to `BoardEditorViewModel.MoveTaskAsync`, which must change the cells *before its first await* — the board selects and focuses the moved card right after the handler returns. `e.TargetIndex` is the index after the move. A lane's `IsExpanded` is bound two-way to `SwimlaneRowViewModel.IsExpanded` and carried over by `LoadAsync`, since the lanes are rebuilt whenever the view is (back from the task editor) or the rows are reloaded
 - **Material.Icons.Avalonia** for icons; **Markdown.Avalonia** for rendering task/agent/skill markdown content
 - `ViewLocator.cs` auto-maps ViewModel types → View types
 - `MainWindowViewModel` owns the page stack and theme toggle (light/dark, persisted in settings)
@@ -126,6 +127,7 @@ Every top-level menu page implements `PageBase` (`MenuTitle`, `Icon`, `DisplayOr
 | Order | Page | Drives |
 |---|---|---|
 | 0 | `BoardsPageViewModel` | `BoardsListViewModel`, `BoardEditorViewModel`, `TaskEditorViewModel` |
+| 5 | `PertPageViewModel` | PERT network, phases, table and timeline of one board (see [PERT](#pert-planning)) |
 | 10 | `AgentsPageViewModel` | `AgentsListViewModel`, `AgentEditorViewModel` — CRUD over `Agent` |
 | 20 | `SkillsPageViewModel` | `SkillsListViewModel`, `SkillEditorViewModel` — CRUD over `Skill` (see [Skills](#skills-corvida)) |
 | 50 | `ArchivedBoardsViewModel` | read-only list of archived boards |
@@ -138,6 +140,8 @@ Each list/editor pair follows the same shape: the list `ViewModel` takes an `Act
 - **Design-time XAML data**: some editor ViewModels expose a `public static T DesignInstance { get; }` factory that builds sample data with no-op service/callback stubs (services are never invoked by the previewer), wired up via `d:DataContext="{x:Static vm:TViewModel.DesignInstance}"` on the view's root element — see `BoardEditorViewModel.DesignInstance` / `BoardEditorView.axaml`. Follow this pattern when a new editor view needs populated data in the Avalonia previewer.
 
 ## REST API (Corvida.Api)
+
+The external reference for tool authors is [`docs/api.md`](docs/api.md): keep it in step when an endpoint, a status code or a request/response shape changes.
 
 ASP.NET Core 10 with EF Core + Npgsql. Connection string: `CorvidaApi` in config (injected by Aspire or `ConnectionStrings__CorvidaApi` in docker-compose; there is no value in `appsettings.json`).
 
@@ -271,11 +275,11 @@ stdio transport; uses `ModelContextProtocol` 1.3.0. Tools are discovered automat
 
 `SettingsLoader` (hosted service) loads `settings.json` before any tool calls are served.
 
-**22 tools across three classes in `Tools/`:**
+**25 tools across three classes in `Tools/`:**
 
 `BoardTools` — `list_boards`, `get_board`, `create_board`, `delete_board`, `add_group`, `rename_group`, `delete_group`, `add_board_member`, `remove_board_member`, `reorder_board_members`
 
-`TaskTools` — `list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`, `move_task`, `assign_agent`
+`TaskTools` — `list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`, `move_task`, `assign_agent`, `add_dependency`, `remove_dependency`, `get_pert_schedule`
 
 `AgentTools` — `list_agents`, `get_agent`, `create_agent`, `update_agent`, `delete_agent`
 
@@ -290,6 +294,36 @@ To connect from Claude Desktop, add to `~/.config/claude/claude_desktop_config.j
   }
 }
 ```
+
+## PERT planning
+
+Tasks of a board form a dependency network through `KanbanTask.DependsOn`. A dependency only points
+at a task on the same board; IDs that point anywhere else (a deleted task, another board) are
+ignored everywhere rather than treated as errors.
+
+- **The rules live in Core** and every host uses them: `TaskDependencies` (cycle check, blocked
+  check, the `Done` column — the group *named* `Done`, ignoring case, which is what default boards
+  and the plan skill create) and `PertCalculator` (expected time `(O + 4M + P) / 6`, ES/EF/LS/LF,
+  slack, critical path, phases). A task without an estimate counts as 1 day so the order and the
+  phases still work with no estimates at all. **Phase** is the longest chain of prerequisites in
+  front of a task: tasks of one phase don't depend on each other, which is what "can run in
+  parallel" means on the page and in `get_pert_schedule`.
+- **Cycles are refused at every write path**: the UI picker only offers tasks that can't close a
+  loop, the MCP `add_dependency` checks, and `TaskEndpoints.UpsertTask` answers 400 (it also drops
+  unknown and self IDs). `PertCalculator` still reports a cycle (`PertSchedule.Cycle`) instead of
+  throwing, since a hand-edited task file can contain one.
+- **Deleting a task removes it from the others' `DependsOn`** in the storage layer — `TaskService`
+  rewrites the board's task files, the API endpoint updates the rows and broadcasts `TaskChanged`
+  for each — so no caller has to remember it.
+- **The network diagram is Rice's `MermaidView`** fed by `PertMermaid.Build`. The view lays it out
+  and pans/zooms, but ignores styling statements, so the critical path is shown by thick `==>`
+  edges and a ★ in the label, not by colour. Node IDs are `t_` + the sanitised task ID;
+  `PertMermaid.TaskIdOf` maps a selected `MermaidNode` back to the task.
+- `TaskPlanningViewModel`/`TaskPlanningView` (estimate + prerequisites) is shared by the task editor,
+  which applies it on Save, and the PERT page, which saves on every change.
+- The board editor marks a card with a lock icon while one of its prerequisites is not in `Done`
+  (`BoardEditorViewModel.BlockedTaskIds`, replaced as a whole so the card bindings re-evaluate).
+  It is only a marker; moving the card is not prevented.
 
 ## Skills (Corvida)
 

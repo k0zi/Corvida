@@ -18,7 +18,7 @@ Executes tasks tracked on a Corvida board, keeping humans in the loop for anythi
 ## Workflow
 
 - **Resolve the board**: the same board used for planning; confirm with the user if ambiguous.
-- **Pull work**: get tasks currently in `To Do` (highest priority / oldest first, unless the user specifies an order).
+- **Pull work**: get tasks currently in `To Do`. Call `get_pert_schedule` and take them phase by phase, critical tasks first within a phase, unless the user specifies an order. Only start a task whose `dependsOn` tasks are all in `Done`; a task still waiting for a prerequisite stays in `To Do` until that prerequisite is finished.
 - **Before starting each task**, re-check whether it actually requires human action (criteria below). If so and it isn't already flagged, `move_task` to `Human`, update its description with the specific question or action needed, and move on — don't block the rest of the queue on it.
 - **Human-routing criteria** (same as the planning skill): a question only the user can answer; sudo/elevated-permission installs or system changes; destructive/hard-to-reverse operations (force-push, `reset --hard`, deleting data/branches/files); actions touching external or shared systems (PRs, messages, publishing, external APIs).
 - **Execute normal tasks**: `move_task` to `In Progress` before starting (so board state reflects reality mid-run), do the implementation work with the project's normal tools, `update_task` with a short summary of what was done and any follow-ups, then `move_task` to `Done`.

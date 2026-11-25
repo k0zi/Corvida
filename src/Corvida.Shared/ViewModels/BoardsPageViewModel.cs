@@ -75,7 +75,7 @@ public partial class BoardsPageViewModel : PageBase
     private void NavigateToTaskEditor(KanbanTask task, Board board)
     {
         var editorVm = new TaskEditorViewModel(
-            task, board, _taskService, _agentService,
+            task, board, _taskService, _agentService, _dialogService,
             onSaved: updated =>
             {
                 var stack = _navStack.ToArray();

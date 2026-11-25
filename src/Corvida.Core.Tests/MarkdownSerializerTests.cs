@@ -226,4 +226,55 @@ public class MarkdownSerializerTests
         var task = MarkdownSerializer.Parse(text);
         Assert.Null(task.AssignedAgentId);
     }
+
+    [Fact]
+    public void RoundTrip_PreservesDependenciesAndEstimates()
+    {
+        var task = MakeTask();
+        task.DependsOn = ["task-a", "task-b"];
+        task.EstimateOptimistic = 0.5;
+        task.EstimateMostLikely = 2;
+        task.EstimatePessimistic = 7.25;
+
+        var parsed = MarkdownSerializer.Parse(MarkdownSerializer.Serialize(task));
+
+        Assert.Equal(["task-a", "task-b"], parsed.DependsOn);
+        Assert.Equal(0.5, parsed.EstimateOptimistic);
+        Assert.Equal(2, parsed.EstimateMostLikely);
+        Assert.Equal(7.25, parsed.EstimatePessimistic);
+    }
+
+    [Fact]
+    public void Serialize_WritesEstimatesWithInvariantCulture()
+    {
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("hu-HU");
+        try
+        {
+            var task = MakeTask();
+            task.EstimateMostLikely = 1.5;
+            Assert.Contains("estimateMostLikely: 1.5", MarkdownSerializer.Serialize(task));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public void Serialize_OmitsDependenciesAndEstimates_WhenNotSet()
+    {
+        var output = MarkdownSerializer.Serialize(MakeTask());
+        Assert.DoesNotContain("dependsOn", output);
+        Assert.DoesNotContain("estimate", output);
+    }
+
+    [Fact]
+    public void Parse_LegacyFileWithoutDependencies_HasEmptyDependsOn()
+    {
+        const string text = "---\nid: x\ntitle: t\ngroupId: g\nboardId: b\ncreated: 2025-01-01T00:00:00Z\npriority: Medium\n---\n";
+        var task = MarkdownSerializer.Parse(text);
+        Assert.Empty(task.DependsOn);
+        Assert.Null(task.EstimateMostLikely);
+    }
 }

@@ -208,6 +208,71 @@ public class TaskEndpointTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Fact]
+    public async Task UpsertTask_PersistsDependenciesAndEstimates()
+    {
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/dep-a", MakeTask("dep-a"));
+        var task = MakeTask("dep-b");
+        task.DependsOn = ["dep-a"];
+        task.EstimateOptimistic = 1;
+        task.EstimateMostLikely = 2.5;
+        task.EstimatePessimistic = 6;
+
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+        var returned = await _client.GetFromJsonAsync<KanbanTask>($"/api/boards/{_seedBoard.Id}/tasks/dep-b", JsonOpts);
+
+        Assert.NotNull(returned);
+        Assert.Equal(["dep-a"], returned.DependsOn);
+        Assert.Equal(1, returned.EstimateOptimistic);
+        Assert.Equal(2.5, returned.EstimateMostLikely);
+        Assert.Equal(6, returned.EstimatePessimistic);
+    }
+
+    [Fact]
+    public async Task UpsertTask_DropsUnknownAndSelfDependencies()
+    {
+        var task = MakeTask("dep-self");
+        task.DependsOn = ["dep-self", "no-such-task"];
+
+        var response = await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/{task.Id}", task);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var returned = await response.Content.ReadFromJsonAsync<KanbanTask>(JsonOpts);
+        Assert.Empty(returned!.DependsOn);
+    }
+
+    [Fact]
+    public async Task UpsertTask_Returns400_WhenDependencyWouldCreateCycle()
+    {
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/cyc-a", MakeTask("cyc-a"));
+        var b = MakeTask("cyc-b");
+        b.DependsOn = ["cyc-a"];
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/cyc-b", b);
+
+        var a = MakeTask("cyc-a");
+        a.DependsOn = ["cyc-b"];
+        var response = await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/cyc-a", a);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var stored = await _client.GetFromJsonAsync<KanbanTask>($"/api/boards/{_seedBoard.Id}/tasks/cyc-a", JsonOpts);
+        Assert.Empty(stored!.DependsOn);
+    }
+
+    [Fact]
+    public async Task DeleteTask_RemovesItFromOtherTasksDependencies()
+    {
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/del-a", MakeTask("del-a"));
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/del-c", MakeTask("del-c"));
+        var b = MakeTask("del-b");
+        b.DependsOn = ["del-a", "del-c"];
+        await _client.PutAsJsonAsync($"/api/boards/{_seedBoard.Id}/tasks/del-b", b);
+
+        await _client.DeleteAsync($"/api/boards/{_seedBoard.Id}/tasks/del-a");
+
+        var stored = await _client.GetFromJsonAsync<KanbanTask>($"/api/boards/{_seedBoard.Id}/tasks/del-b", JsonOpts);
+        Assert.Equal(["del-c"], stored!.DependsOn);
+    }
+
     private KanbanTask MakeTask(string id) => new()
     {
         Id = id,

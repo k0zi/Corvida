@@ -197,4 +197,19 @@ public class TaskServiceTests : IDisposable
         var result = await _sut.GetTaskAsync(task.BoardId, task.Id);
         Assert.NotNull(result);
     }
+
+    [Fact]
+    public async Task DeleteTaskAsync_RemovesTheTaskFromOtherTasksDependencies()
+    {
+        await _sut.SaveTaskAsync(MakeTask(taskId: "a"));
+        await _sut.SaveTaskAsync(MakeTask(taskId: "c"));
+        var b = MakeTask(taskId: "b");
+        b.DependsOn = ["a", "c"];
+        await _sut.SaveTaskAsync(b);
+
+        await _sut.DeleteTaskAsync("board-1", "a");
+
+        var stored = await _sut.GetTaskAsync("board-1", "b");
+        Assert.Equal(["c"], stored!.DependsOn);
+    }
 }

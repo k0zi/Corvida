@@ -42,6 +42,21 @@ public class TaskService : ITaskService
         await EnsureBoardNotArchivedAsync(boardId);
         var path = TaskFile(boardId, taskId);
         if (File.Exists(path)) File.Delete(path);
+        await RemoveDependencyReferencesAsync(boardId, taskId);
+    }
+
+    // A deleted task must not linger as a prerequisite of the others.
+    private async Task RemoveDependencyReferencesAsync(string boardId, string taskId)
+    {
+        var dir = TasksDir(boardId);
+        if (!Directory.Exists(dir)) return;
+
+        foreach (var file in Directory.EnumerateFiles(dir, "*.md"))
+        {
+            var task = MarkdownSerializer.Parse(await File.ReadAllTextAsync(file));
+            if (TaskDependencies.RemoveReferences([task], taskId).Count > 0)
+                await File.WriteAllTextAsync(file, MarkdownSerializer.Serialize(task));
+        }
     }
 
     private async Task EnsureBoardNotArchivedAsync(string boardId)
